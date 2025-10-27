@@ -103,13 +103,6 @@ OutfitFlow/
 - Git
 - Expo Go 앱 (스마트폰)
 
-### 앱 실행하기
-
-```bash
-cd mobile
-npm start
-```
-
 그 다음:
 - 스마트폰에 Expo Go 앱 설치
 - QR 코드 스캔
