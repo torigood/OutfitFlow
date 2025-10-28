@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -14,54 +14,64 @@ import {
   Pressable,
   Keyboard,
   TouchableWithoutFeedback,
+  ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-
-// 샘플 옷 데이터
-const SAMPLE_CLOTHES = [
-  {
-    id: 1,
-    name: "화이트 셔츠",
-    color: "화이트",
-    brand: "유니클로",
-    category: "상의",
-    image: "https://via.placeholder.com/300x400/CCCCCC/666666?text=Shirt",
-  },
-  {
-    id: 2,
-    name: "블랙 진",
-    color: "블랙",
-    brand: "리바이스",
-    category: "하의",
-    image: "https://via.placeholder.com/300x400/333333/AAAAAA?text=Jeans",
-  },
-  {
-    id: 3,
-    name: "스니커즈",
-    color: "화이트",
-    brand: "나이키",
-    category: "신발",
-    image: "https://via.placeholder.com/300x400/EEEEEE/888888?text=Shoes",
-  },
-  {
-    id: 4,
-    name: "레더 자켓",
-    color: "블랙",
-    brand: "Zara",
-    category: "아우터",
-    image: "https://via.placeholder.com/300x400/222222/999999?text=Jacket",
-  },
-];
+import { uploadImageToCloudinary } from "../services/cloudinaryService";
+import {
+  addClothingItem,
+  getClothingItems,
+  updateClothingItem,
+  deleteClothingItem,
+} from "../services/wardrobeService";
+import { ClothingItem } from "../types/wardrobe";
 
 const CATEGORIES = ["전체", "상의", "하의", "아우터", "신발", "악세사리"];
 const SEASONS = ["봄", "여름", "가을", "겨울"];
 
+// 웹 호환 Alert 래퍼 함수들
+const showAlert = (title: string, message?: string) => {
+  if (Platform.OS === "web") {
+    window.alert(`${title}${message ? `\n${message}` : ""}`);
+  } else {
+    Alert.alert(title, message);
+  }
+};
+
+const showConfirm = (
+  title: string,
+  message: string,
+  onConfirm: () => void,
+  onCancel?: () => void
+) => {
+  if (Platform.OS === "web") {
+    const result = window.confirm(`${title}\n${message}`);
+    if (result) {
+      onConfirm();
+    } else if (onCancel) {
+      onCancel();
+    }
+  } else {
+    Alert.alert(title, message, [
+      { text: "취소", style: "cancel", onPress: onCancel },
+      { text: "확인", style: "destructive", onPress: onConfirm },
+    ]);
+  }
+};
+
 export default function WardrobeScreen() {
   const [selectedCategory, setSelectedCategory] = useState("전체");
   const [searchQuery, setSearchQuery] = useState("");
-  const [clothes, setClothes] = useState(SAMPLE_CLOTHES);
+  const [clothes, setClothes] = useState<ClothingItem[]>([]);
   const [selectedSeasonFilter, setSelectedSeasonFilter] = useState("전체");
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+
+  // 로딩 상태
+  const [isLoading, setIsLoading] = useState(true); // 전체 로딩 (데이터 불러오기)
+  const [isUploading, setIsUploading] = useState(false); // 업로드/저장 중
+  const [refreshing, setRefreshing] = useState(false); // Pull-to-refresh 상태
 
   // 모달 상태
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -83,13 +93,53 @@ export default function WardrobeScreen() {
   const [itemColor, setItemColor] = useState("");
   const [itemBrand, setItemBrand] = useState("");
 
+  // 앱 시작 시 Firestore에서 옷 목록 불러오기
+  useEffect(() => {
+    loadClothes();
+  }, []);
+
+  const loadClothes = async () => {
+    try {
+      setIsLoading(true);
+      const items = await getClothingItems();
+      setClothes(items);
+    } catch (error) {
+      showAlert(
+        "오류",
+        `옷 목록을 불러오는데 실패했습니다: ${
+          error instanceof Error ? error.message : "알 수 없는 오류"
+        }`
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Pull-to-refresh 핸들러
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const items = await getClothingItems();
+      setClothes(items);
+    } catch (error) {
+      showAlert(
+        "오류",
+        `새로고침 실패: ${
+          error instanceof Error ? error.message : "알 수 없는 오류"
+        }`
+      );
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   // 이미지 선택 함수
   const pickImage = async () => {
     const permissionResult =
       await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (permissionResult.granted === false) {
-      Alert.alert("권한 필요", "갤러리 접근 권한이 필요합니다.");
+      showAlert("권한 필요", "갤러리 접근 권한이 필요합니다.");
       return;
     }
 
@@ -110,7 +160,7 @@ export default function WardrobeScreen() {
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
 
     if (permissionResult.granted === false) {
-      Alert.alert("권한 필요", "카메라 접근 권한이 필요합니다.");
+      showAlert("권한 필요", "카메라 접근 권한이 필요합니다.");
       return;
     }
 
@@ -168,7 +218,7 @@ export default function WardrobeScreen() {
       );
       setItemColor(selectedItem.color || "");
       setItemBrand(selectedItem.brand || "");
-      setSelectedImage(selectedItem.image);
+      setSelectedImage(selectedItem.imageUrl);
       setIsEditMode(true);
       setIsDetailModalVisible(false);
       setIsModalVisible(true);
@@ -177,19 +227,30 @@ export default function WardrobeScreen() {
 
   // 아이템 삭제
   const handleDeleteItem = () => {
-    Alert.alert("삭제 확인", "이 아이템을 삭제하시겠습니까?", [
-      { text: "취소", style: "cancel" },
-      {
-        text: "삭제",
-        style: "destructive",
-        onPress: () => {
-          setClothes(clothes.filter((item) => item.id !== selectedItem.id));
+    showConfirm(
+      "삭제 확인",
+      "이 아이템을 삭제하시겠습니까?",
+      async () => {
+        try {
+          setIsUploading(true);
+          await deleteClothingItem(selectedItem.id);
           setIsDetailModalVisible(false);
           setSelectedItem(null);
-          Alert.alert("성공", "아이템이 삭제되었습니다.");
-        },
-      },
-    ]);
+          showAlert("성공", "아이템이 삭제되었습니다.");
+          // 목록 새로고침
+          await loadClothes();
+        } catch (error) {
+          showAlert(
+            "오류",
+            `삭제 실패: ${
+              error instanceof Error ? error.message : "알 수 없는 오류"
+            }`
+          );
+        } finally {
+          setIsUploading(false);
+        }
+      }
+    );
   };
 
   // 상세 모달 닫기
@@ -199,49 +260,77 @@ export default function WardrobeScreen() {
   };
 
   // 아이템 추가 또는 수정
-  const handleAddItem = () => {
+  const handleAddItem = async () => {
     if (!selectedImage || !itemName || !itemCategory) {
-      Alert.alert("입력 오류", "이미지, 아이템 이름, 카테고리는 필수입니다.");
+      showAlert("입력 오류", "이미지, 아이템 이름, 카테고리는 필수입니다.");
       return;
     }
 
-    if (isEditMode && selectedItem) {
-      // 수정 모드
-      const updatedClothes = clothes.map((item) =>
-        item.id === selectedItem.id
-          ? {
-              ...item,
-              name: itemName,
-              color: itemColor,
-              brand: itemBrand,
-              category: itemCategory,
-              seasons: itemSeasons.join(", "),
-              image: selectedImage,
-            }
-          : item
-      );
-      setClothes(updatedClothes);
-      Alert.alert("성공", "아이템이 수정되었습니다!");
-    } else {
-      // 추가 모드
-      const newItem = {
-        id: clothes.length + 1,
-        name: itemName,
-        color: itemColor,
-        brand: itemBrand,
-        category: itemCategory,
-        seasons: itemSeasons.join(", "),
-        image: selectedImage,
-      };
-      setClothes([...clothes, newItem]);
-      Alert.alert("성공", "아이템이 추가되었습니다!");
-    }
+    try {
+      setIsUploading(true);
 
-    // 폼 초기화 및 모달 닫기
-    resetForm();
-    setIsModalVisible(false);
-    setIsEditMode(false);
-    setSelectedItem(null);
+      // 이미지가 변경되었는지 확인 (수정 모드일 때)
+      const isImageChanged =
+        isEditMode && selectedItem && selectedImage !== selectedItem.imageUrl;
+
+      let imageUrl = selectedImage;
+      let cloudinaryPublicId =
+        isEditMode && selectedItem ? selectedItem.cloudinaryPublicId : "";
+
+      // 새 이미지이거나 이미지가 변경된 경우 Cloudinary에 업로드
+      if (!isEditMode || isImageChanged) {
+        // 로컬 이미지인 경우에만 업로드 (http로 시작하지 않으면 로컬)
+        if (!selectedImage.startsWith("http")) {
+          const uploadResult = await uploadImageToCloudinary(selectedImage);
+          imageUrl = uploadResult.url;
+          cloudinaryPublicId = uploadResult.publicId;
+        }
+      }
+
+      if (isEditMode && selectedItem) {
+        // 수정 모드
+        await updateClothingItem(selectedItem.id, {
+          name: itemName,
+          color: itemColor,
+          brand: itemBrand,
+          category: itemCategory,
+          seasons: itemSeasons.join(", "),
+          imageUrl: imageUrl,
+          cloudinaryPublicId: cloudinaryPublicId,
+        });
+        showAlert("성공", "아이템이 수정되었습니다!");
+      } else {
+        // 추가 모드
+        await addClothingItem({
+          name: itemName,
+          color: itemColor,
+          brand: itemBrand,
+          category: itemCategory,
+          seasons: itemSeasons.join(", "),
+          imageUrl: imageUrl,
+          cloudinaryPublicId: cloudinaryPublicId,
+        });
+        showAlert("성공", "아이템이 추가되었습니다!");
+      }
+
+      // 목록 새로고침
+      await loadClothes();
+
+      // 폼 초기화 및 모달 닫기
+      resetForm();
+      setIsModalVisible(false);
+      setIsEditMode(false);
+      setSelectedItem(null);
+    } catch (error) {
+      showAlert(
+        "오류",
+        `작업 실패: ${
+          error instanceof Error ? error.message : "알 수 없는 오류"
+        }`
+      );
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   // 필터링된 옷 목록
@@ -259,7 +348,9 @@ export default function WardrobeScreen() {
   });
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+    <TouchableWithoutFeedback
+      onPress={Platform.OS === "web" ? undefined : Keyboard.dismiss}
+    >
       <View style={styles.container}>
         {/* 헤더 */}
         <View style={styles.header}>
@@ -277,7 +368,12 @@ export default function WardrobeScreen() {
         </View>
 
         {/* 검색창 */}
-        <View style={styles.searchContainer}>
+        <View
+          style={[
+            styles.searchContainer,
+            isSearchFocused && styles.searchContainerFocused,
+          ]}
+        >
           <Ionicons
             name="search"
             size={20}
@@ -289,6 +385,8 @@ export default function WardrobeScreen() {
             placeholder="아이템 검색..."
             value={searchQuery}
             onChangeText={setSearchQuery}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => setIsSearchFocused(false)}
           />
         </View>
 
@@ -378,34 +476,55 @@ export default function WardrobeScreen() {
         </View>
 
         {/* 옷 그리드 */}
-        <ScrollView style={styles.scrollView}>
-          <View style={styles.grid}>
-            {filteredClothes.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                style={styles.clothingCard}
-                onPress={() => handleItemClick(item)}
-              >
-                <Image
-                  source={{ uri: item.image }}
-                  style={styles.clothingImage}
-                />
-                <View style={styles.clothingInfo}>
-                  <Text style={styles.clothingName}>{item.name}</Text>
-                  <Text style={styles.clothingColor}>{item.color}</Text>
-                  <Text style={styles.clothingBrand}>{item.brand}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* 빈 상태 */}
-          {filteredClothes.length === 0 && (
-            <View style={styles.emptyState}>
-              <Ionicons name="shirt-outline" size={64} color="#ccc" />
-              <Text style={styles.emptyText}>아이템이 없습니다</Text>
-              <Text style={styles.emptySubtext}>새로운 옷을 추가해보세요</Text>
+        <ScrollView
+          style={styles.scrollView}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={["#000"]} // Android
+              tintColor="#000" // iOS
+            />
+          }
+        >
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#000" />
+              <Text style={styles.loadingText}>옷 목록을 불러오는 중...</Text>
             </View>
+          ) : (
+            <>
+              <View style={styles.grid}>
+                {filteredClothes.map((item) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={styles.clothingCard}
+                    onPress={() => handleItemClick(item)}
+                  >
+                    <Image
+                      source={{ uri: item.imageUrl }}
+                      style={styles.clothingImage}
+                    />
+                    <View style={styles.clothingInfo}>
+                      <Text style={styles.clothingName}>{item.name}</Text>
+                      <Text style={styles.clothingColor}>{item.color}</Text>
+                      <Text style={styles.clothingBrand}>{item.brand}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* 빈 상태 */}
+              {filteredClothes.length === 0 && !isLoading && (
+                <View style={styles.emptyState}>
+                  <Ionicons name="shirt-outline" size={64} color="#ccc" />
+                  <Text style={styles.emptyText}>아이템이 없습니다</Text>
+                  <Text style={styles.emptySubtext}>
+                    새로운 옷을 추가해보세요
+                  </Text>
+                </View>
+              )}
+            </>
           )}
         </ScrollView>
 
@@ -644,12 +763,25 @@ export default function WardrobeScreen() {
                 {/* 추가/수정 버튼 */}
                 <View style={styles.modalFooter}>
                   <TouchableOpacity
-                    style={styles.submitButton}
+                    style={[
+                      styles.submitButton,
+                      isUploading && styles.submitButtonDisabled,
+                    ]}
                     onPress={handleAddItem}
+                    disabled={isUploading}
                   >
-                    <Text style={styles.submitButtonText}>
-                      {isEditMode ? "아이템 수정" : "아이템 추가"}
-                    </Text>
+                    {isUploading ? (
+                      <View style={styles.uploadingContainer}>
+                        <ActivityIndicator size="small" color="#fff" />
+                        <Text style={styles.submitButtonText}>
+                          {isEditMode ? "수정 중..." : "추가 중..."}
+                        </Text>
+                      </View>
+                    ) : (
+                      <Text style={styles.submitButtonText}>
+                        {isEditMode ? "아이템 수정" : "아이템 추가"}
+                      </Text>
+                    )}
                   </TouchableOpacity>
                 </View>
               </View>
@@ -683,7 +815,7 @@ export default function WardrobeScreen() {
                   >
                     {/* 이미지 */}
                     <Image
-                      source={{ uri: selectedItem.image }}
+                      source={{ uri: selectedItem.imageUrl }}
                       style={styles.detailImage}
                     />
 
@@ -772,7 +904,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 16,
     color: "#666",
   },
   addButton: {
@@ -801,6 +933,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e0e0e0",
   },
+  searchContainerFocused: {
+    borderColor: "#000",
+    borderWidth: 2,
+  },
   searchIcon: {
     marginRight: 8,
   },
@@ -808,6 +944,11 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     fontSize: 15,
+    ...Platform.select({
+      web: {
+        outlineStyle: "none" as any,
+      },
+    }),
   },
   filterSectionContainer: {
     marginTop: Platform.select({ web: 16, default: 0 }),
@@ -903,6 +1044,17 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 60,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#666",
   },
   grid: {
     flexDirection: "row",
@@ -1188,6 +1340,14 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
+  },
+  submitButtonDisabled: {
+    opacity: 0.6,
+  },
+  uploadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
   // 상세 모달 스타일
   detailModalOverlay: {
