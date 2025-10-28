@@ -14,6 +14,7 @@ export default function Sidebar({ currentRoute, onNavigate }: SidebarProps) {
     { name: "AIRecommend", label: "AI 추천", icon: "sparkles" },
     { name: "Community", label: "커뮤니티", icon: "people" },
     { name: "Shopping", label: "쇼핑 추천", icon: "cart" },
+    { name: "Settings", label: "설정", icon: "settings" },
   ];
 
   return (
