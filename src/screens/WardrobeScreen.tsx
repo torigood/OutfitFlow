@@ -144,7 +144,7 @@ export default function WardrobeScreen() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [3, 4],
       quality: 0.7,
@@ -227,30 +227,26 @@ export default function WardrobeScreen() {
 
   // 아이템 삭제
   const handleDeleteItem = () => {
-    showConfirm(
-      "삭제 확인",
-      "이 아이템을 삭제하시겠습니까?",
-      async () => {
-        try {
-          setIsUploading(true);
-          await deleteClothingItem(selectedItem.id);
-          setIsDetailModalVisible(false);
-          setSelectedItem(null);
-          showAlert("성공", "아이템이 삭제되었습니다.");
-          // 목록 새로고침
-          await loadClothes();
-        } catch (error) {
-          showAlert(
-            "오류",
-            `삭제 실패: ${
-              error instanceof Error ? error.message : "알 수 없는 오류"
-            }`
-          );
-        } finally {
-          setIsUploading(false);
-        }
+    showConfirm("삭제 확인", "이 아이템을 삭제하시겠습니까?", async () => {
+      try {
+        setIsUploading(true);
+        await deleteClothingItem(selectedItem.id);
+        setIsDetailModalVisible(false);
+        setSelectedItem(null);
+        showAlert("성공", "아이템이 삭제되었습니다.");
+        // 목록 새로고침
+        await loadClothes();
+      } catch (error) {
+        showAlert(
+          "오류",
+          `삭제 실패: ${
+            error instanceof Error ? error.message : "알 수 없는 오류"
+          }`
+        );
+      } finally {
+        setIsUploading(false);
       }
-    );
+    });
   };
 
   // 상세 모달 닫기
