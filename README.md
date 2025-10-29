@@ -15,7 +15,8 @@ OutfitFlow는 개인의 옷장을 디지털로 관리하고, AI를 활용해 스
 - 🔍 **검색 및 필터**: 카테고리, 계절, 이름/브랜드로 옷 검색
 - ✏️ **CRUD 기능**: 옷 추가, 수정, 삭제
 - 📸 **이미지 최적화**: 자동 리사이징 및 압축 (Cloudinary)
-- 🤖 **AI 추천** (개발 예정): 옷장 기반 코디 추천
+- 🤖 **AI 코디 추천**: Google Gemini AI 기반 스마트 코디 추천, 날씨 연동
+- 🌤️ **날씨 연동**: 실시간 날씨 기반 옷차림 추천
 - 🌐 **크로스 플랫폼**: iOS, Android, Web 지원
 
 ---
@@ -62,9 +63,15 @@ npm install
    # Cloudinary Config (Cloudinary Dashboard에서 확인)
    CLOUDINARY_CLOUD_NAME=your_cloud_name
    CLOUDINARY_UPLOAD_PRESET=your_upload_preset
+
+   # Gemini AI Config (Google AI Studio에서 확인)
+   GEMINI_API_KEY=your_gemini_api_key
+
+   # OpenWeatherMap API Config (OpenWeatherMap에서 확인)
+   OPENWEATHER_API_KEY=your_openweather_api_key
    ```
 
-3. Firebase 및 Cloudinary 설정은 아래 **환경 설정** 섹션 참조
+3. Firebase, Cloudinary, Gemini AI, OpenWeatherMap 설정은 아래 **환경 설정** 섹션 참조
 
 ⚠️ **중요**: `.env` 파일은 절대 GitHub에 커밋하지 마세요! (이미 `.gitignore`에 추가되어 있음)
 
@@ -104,6 +111,12 @@ npx expo start
 - **Cloudinary** (이미지 저장 및 최적화)
   - 자동 이미지 압축/리사이징
   - 25GB 무료 저장소
+- **Google Gemini AI** (AI 패션 분석)
+  - Gemini 2.5 Flash 모델
+  - 이미지 기반 코디 분석
+- **OpenWeatherMap** (날씨 정보)
+  - 실시간 날씨 API
+  - 온도 기반 계절 추천
 
 ### 주요 라이브러리
 - `expo-image-picker` - 이미지 선택/촬영
@@ -138,15 +151,19 @@ OutfitFlow/
 │   ├── screens/
 │   │   ├── HomeScreen.tsx            # 홈 화면
 │   │   ├── WardrobeScreen.tsx        # 옷장 관리 (메인)
-│   │   ├── AIRecommendScreen.tsx     # AI 추천 (예정)
+│   │   ├── AIRecommendScreen.tsx     # AI 코디 추천
 │   │   ├── FeedScreen.tsx            # 커뮤니티 피드 (예정)
 │   │   ├── ShoppingScreen.tsx        # 쇼핑 추천 (예정)
 │   │   └── SettingScreen.tsx         # 설정
 │   ├── services/
 │   │   ├── cloudinaryService.ts      # Cloudinary 업로드/삭제
-│   │   └── wardrobeService.ts        # Firestore CRUD
+│   │   ├── wardrobeService.ts        # Firestore CRUD
+│   │   ├── geminiService.ts          # Gemini AI 이미지 분석
+│   │   ├── fashionAIService.ts       # AI 코디 추천 로직
+│   │   └── weatherService.ts         # OpenWeatherMap API
 │   └── types/
-│       └── wardrobe.ts               # TypeScript 타입 정의
+│       ├── wardrobe.ts               # 옷장 타입 정의
+│       └── ai.ts                     # AI 분석 타입 정의
 ├── index.ts                          # 앱 진입점
 ├── app.json                          # Expo 설정
 ├── firebase.json                     # Firebase 설정
@@ -226,7 +243,40 @@ CLOUDINARY_UPLOAD_PRESET=your_upload_preset
 
 ---
 
-### 3. GitHub Secrets 설정 (자동 정리 기능용)
+### 3. Google Gemini AI 설정
+
+#### Gemini API Key 생성
+1. [Google AI Studio](https://aistudio.google.com/apikey) 접속
+2. "Create API Key" 클릭
+3. API 키 복사
+4. `.env` 파일에 값 입력:
+
+```env
+GEMINI_API_KEY=your_gemini_api_key
+```
+
+**참고**: Gemini 2.5 Flash 모델을 사용하며, 무료 티어로 이용 가능합니다.
+
+---
+
+### 4. OpenWeatherMap API 설정
+
+#### OpenWeather API Key 생성
+1. [OpenWeatherMap](https://openweathermap.org/api) 접속
+2. "Sign Up" 후 로그인
+3. API Keys 탭으로 이동
+4. API 키 복사 (또는 새로 생성)
+5. `.env` 파일에 값 입력:
+
+```env
+OPENWEATHER_API_KEY=your_openweather_api_key
+```
+
+**참고**: 무료 티어로 분당 60회 호출 가능하며, 현재 날씨 정보를 AI 코디 추천에 활용합니다.
+
+---
+
+### 5. GitHub Secrets 설정 (자동 정리 기능용)
 
 이미지 자동 정리 기능을 사용하려면 GitHub Secrets 설정이 필요합니다.
 
@@ -271,12 +321,28 @@ CLOUDINARY_UPLOAD_PRESET=your_upload_preset
 
 ---
 
-### AI 추천 (개발 예정)
+### AI 코디 추천
 
-**📋 계획:**
-- 옷장 기반 코디 추천
-- 날씨/계절/TPO 고려
-- OpenAI GPT-4 Vision 활용
+**✅ 구현 완료:**
+- 스마트 코디 추천 시스템
+  - 유저가 0개 이상의 아이템 선택 가능
+  - 선택한 아이템을 무조건 포함한 코디 추천
+  - AI가 부족한 카테고리를 자동으로 채워서 완성
+- 날씨 기반 추천
+  - OpenWeatherMap API 연동
+  - 실시간 온도, 습도, 날씨 상태 반영
+  - 계절별 자동 필터링 (온도에 따라 봄/여름/가을/겨울 아이템 선택)
+- Google Gemini AI 분석
+  - 이미지 기반 스타일 분석
+  - 색상 조화 점수 및 보색 추천
+  - 스타일 일관성 평가
+  - 코디 개선 제안
+- 스타일 선택
+  - 캐주얼, 미니멀, 스트릿, 포멀, 스포티 등
+- 추가 아이템 추천
+  - 옷장에 없는 새로운 아이템 구매 추천
+  - 기존 옷장과 중복되지 않는 아이템만 추천
+  - 현재 온도를 고려한 시즌별 추천
 
 ---
 

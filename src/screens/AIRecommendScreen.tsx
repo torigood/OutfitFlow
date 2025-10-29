@@ -15,14 +15,24 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { getClothingItems } from "../services/wardrobeService";
 import {
-  analyzeOutfitCombination,
-  recommendOutfitAutomatically,
+  recommendSmartOutfit,
   recommendNewItems,
 } from "../services/fashionAIService";
+import { getDefaultWeather } from "../services/weatherService";
 import { ClothingItem } from "../types/wardrobe";
-import { OutfitAnalysis, FashionStyle } from "../types/ai";
+import { OutfitAnalysis, FashionStyle, WeatherInfo } from "../types/ai";
 
-const STYLES: FashionStyle[] = ["캐주얼", "미니멀", "스트릿", "포멀", "스포티"];
+const STYLES: FashionStyle[] = [
+  "캐주얼",
+  "미니멀",
+  "스트릿",
+  "포멀",
+  "스포티",
+  "빈티지",
+  "페미닌",
+  "댄디",
+  "기타",
+];
 const STYLE_ICONS: Record<FashionStyle, any> = {
   캐주얼: "shirt-outline",
   미니멀: "square-outline",
@@ -37,12 +47,6 @@ const STYLE_ICONS: Record<FashionStyle, any> = {
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-interface RecommendationType {
-  title: string;
-  type: "user-selected" | "ai-auto";
-  analysis: OutfitAnalysis | null;
-}
-
 export default function AIRecommendScreen() {
   const [clothes, setClothes] = useState<ClothingItem[]>([]);
   const [selectedItems, setSelectedItems] = useState<ClothingItem[]>([]);
@@ -50,24 +54,21 @@ export default function AIRecommendScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  // 2개의 추천: 1) 유저 선택 기반, 2) AI 자동 선택
-  const [recommendations, setRecommendations] = useState<RecommendationType[]>([
-    { title: "내가 선택한 코디", type: "user-selected", analysis: null },
-    { title: "AI 추천 코디", type: "ai-auto", analysis: null },
-  ]);
-
-  const [currentRecommendationIndex, setCurrentRecommendationIndex] =
-    useState(0);
+  const [analysis, setAnalysis] = useState<OutfitAnalysis | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  // 새 아이템 추천
-  const [newItemRecommendations, setNewItemRecommendations] = useState<
+  // 날씨 정보
+  const [weather, setWeather] = useState<WeatherInfo | null>(null);
+
+  // 새 아이템 추천 (같이 있으면 좋을 아이템)
+  const [suggestedItems, setSuggestedItems] = useState<
     Array<{ category: string; item: string; reason: string }>
   >([]);
 
-  // 옷장 데이터 불러오기
+  // 옷장 데이터 및 날씨 불러오기
   useEffect(() => {
     loadClothes();
+    loadWeather();
   }, []);
 
   const loadClothes = async () => {
@@ -76,6 +77,16 @@ export default function AIRecommendScreen() {
       setClothes(items);
     } catch (error) {
       console.error("옷 목록 불러오기 오류:", error);
+    }
+  };
+
+  const loadWeather = async () => {
+    try {
+      const weatherData = await getDefaultWeather();
+      setWeather(weatherData);
+    } catch (error) {
+      console.error("날씨 불러오기 오류:", error);
+      // 날씨 불러오기 실패해도 앱 사용은 계속 가능
     }
   };
 
@@ -90,46 +101,33 @@ export default function AIRecommendScreen() {
     }
   };
 
-  // AI 추천 받기 (2개 동시)
-  const handleGetRecommendations = async () => {
-    if (selectedItems.length < 2) {
-      alert("최소 2개 이상의 옷을 선택해주세요!");
+  // AI 스마트 추천 받기
+  const handleGetRecommendation = async () => {
+    if (clothes.length < 2) {
+      alert("옷장에 최소 2개 이상의 옷이 필요합니다!");
       return;
     }
 
     try {
       setIsLoading(true);
 
-      // 1. 유저 선택 아이템 분석
-      const userSelectedAnalysis = await analyzeOutfitCombination(
+      // 스마트 추천 (유저 선택 아이템 포함 or 전체 자동)
+      const outfitAnalysis = await recommendSmartOutfit(
         selectedItems,
-        selectedStyle
-      );
-
-      // 2. AI 자동 추천
-      const aiAutoAnalysis = await recommendOutfitAutomatically(
         clothes,
-        selectedStyle
+        selectedStyle,
+        weather?.temperature // 날씨 API에서 가져온 온도 전달
       );
 
-      // 3. 새 아이템 추천
-      const newItems = await recommendNewItems(clothes, selectedStyle);
+      // 같이 있으면 좋을 아이템 추천
+      const newItems = await recommendNewItems(
+        clothes,
+        selectedStyle,
+        weather?.temperature
+      );
 
-      setRecommendations([
-        {
-          title: "내가 선택한 코디",
-          type: "user-selected",
-          analysis: userSelectedAnalysis,
-        },
-        {
-          title: "AI 추천 코디",
-          type: "ai-auto",
-          analysis: aiAutoAnalysis,
-        },
-      ]);
-
-      setNewItemRecommendations(newItems);
-      setCurrentRecommendationIndex(0);
+      setAnalysis(outfitAnalysis);
+      setSuggestedItems(newItems);
       setCurrentImageIndex(0);
     } catch (error: any) {
       console.error("AI 분석 오류:", error);
@@ -143,15 +141,12 @@ export default function AIRecommendScreen() {
   const handleRefreshAll = async () => {
     setRefreshing(true);
     await loadClothes();
-    if (selectedItems.length >= 2) {
-      await handleGetRecommendations();
+    await loadWeather();
+    if (clothes.length >= 2) {
+      await handleGetRecommendation();
     }
     setRefreshing(false);
   };
-
-  // 현재 추천 가져오기
-  const currentRecommendation = recommendations[currentRecommendationIndex];
-  const hasAnalysis = currentRecommendation?.analysis !== null;
 
   return (
     <ScrollView
@@ -164,14 +159,47 @@ export default function AIRecommendScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>AI 코디 추천</Text>
         <Text style={styles.subtitle}>
-          스타일과 날씨에 맞는 완벽한 조합을 찾아보세요
+          날씨와 스타일에 맞는 완벽한 조합을 찾아보세요
         </Text>
+
+        {/* 날씨 정보 */}
+        {weather && (
+          <View style={styles.weatherCard}>
+            <View style={styles.weatherLeft}>
+              <Ionicons
+                name={
+                  weather.condition === "맑음"
+                    ? "sunny"
+                    : weather.condition === "흐림"
+                    ? "cloudy"
+                    : weather.condition.includes("비")
+                    ? "rainy"
+                    : weather.condition.includes("눈")
+                    ? "snow"
+                    : "cloud"
+                }
+                size={32}
+                color="#000"
+              />
+              <View style={styles.weatherInfo}>
+                <Text style={styles.weatherTemp}>{weather.temperature}°C</Text>
+                <Text style={styles.weatherCondition}>{weather.condition}</Text>
+              </View>
+            </View>
+            <View style={styles.weatherRight}>
+              <Text style={styles.weatherDetail}>
+                체감 {weather.feelsLike}°C
+              </Text>
+              <Text style={styles.weatherDetail}>습도 {weather.humidity}%</Text>
+            </View>
+          </View>
+        )}
       </View>
 
-      {/* 옷 선택 영역 */}
+      {/* 옷 선택 영역 (선택 사항) */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>
-          옷 선택하기 ({selectedItems.length}/4)
+          옷 선택하기 ({selectedItems.length}/4) - 선택 안 해도 추천 가능
         </Text>
         <ScrollView
           horizontal
@@ -242,11 +270,10 @@ export default function AIRecommendScreen() {
       <TouchableOpacity
         style={[
           styles.recommendButton,
-          (selectedItems.length < 2 || isLoading) &&
-            styles.recommendButtonDisabled,
+          (clothes.length < 2 || isLoading) && styles.recommendButtonDisabled,
         ]}
-        onPress={handleGetRecommendations}
-        disabled={selectedItems.length < 2 || isLoading}
+        onPress={handleGetRecommendation}
+        disabled={clothes.length < 2 || isLoading}
       >
         {isLoading ? (
           <ActivityIndicator color="#fff" />
@@ -259,203 +286,148 @@ export default function AIRecommendScreen() {
       </TouchableOpacity>
 
       {/* 추천 결과 */}
-      {hasAnalysis && (
-        <View style={styles.section}>
-          {/* 추천 타입 전환 (가로 스와이프) */}
+      {analysis && (
+        <View style={styles.resultSection}>
+          {/* 헤더 */}
+          <View style={styles.resultHeader}>
+            <Text style={styles.resultTitle}>추천 코디</Text>
+            <TouchableOpacity
+              onPress={handleGetRecommendation}
+              style={styles.refreshButton}
+            >
+              <Ionicons name="refresh-outline" size={18} color="#666" />
+              <Text style={styles.refreshText}>새로고침</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* 매칭도 배지 */}
+          <View style={styles.matchBadge}>
+            <Text style={styles.matchBadgeText}>
+              매칭도 {Math.round((analysis.compatibility / 10) * 100)}%
+            </Text>
+          </View>
+
+          {/* 아이템 갤러리 (스와이프) */}
           <FlatList
-            data={recommendations}
+            data={analysis.selectedItems}
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
-            snapToInterval={SCREEN_WIDTH}
+            snapToInterval={SCREEN_WIDTH - 48}
+            snapToAlignment="center"
             decelerationRate="fast"
+            scrollEventThrottle={16}
             onScroll={(event) => {
               const index = Math.round(
-                event.nativeEvent.contentOffset.x / SCREEN_WIDTH
+                event.nativeEvent.contentOffset.x / (SCREEN_WIDTH - 48)
               );
-              setCurrentRecommendationIndex(index);
-              setCurrentImageIndex(0);
+              setCurrentImageIndex(index);
             }}
-            renderItem={({ item }) => (
-              <View style={styles.recommendationContainer}>
-                {/* 추천 타입 헤더 */}
-                <View style={styles.resultHeader}>
-                  <Text style={styles.sectionTitle}>{item.title}</Text>
-                  <TouchableOpacity
-                    onPress={handleGetRecommendations}
-                    style={styles.refreshButton}
-                  >
-                    <Ionicons name="refresh-outline" size={18} color="#666" />
-                    <Text style={styles.refreshText}>새로고침</Text>
-                  </TouchableOpacity>
+            renderItem={({ item: clothItem }) => (
+              <View style={styles.itemCard}>
+                <Image
+                  source={{ uri: clothItem.imageUrl }}
+                  style={styles.itemImage}
+                  resizeMode="cover"
+                />
+                <View style={styles.itemInfo}>
+                  <Text style={styles.itemName}>{clothItem.name}</Text>
+                  <Text style={styles.itemCategory}>{clothItem.category}</Text>
                 </View>
-
-                {item.analysis && (
-                  <>
-                    {/* 매칭도 배지 */}
-                    <View style={styles.matchBadgeContainer}>
-                      <View style={styles.matchBadge}>
-                        <Text style={styles.matchBadgeText}>
-                          매칭도{" "}
-                          {Math.round((item.analysis.compatibility / 10) * 100)}
-                          %
-                        </Text>
-                      </View>
-                    </View>
-
-                    {/* 선택된 옷 스와이퍼 */}
-                    <FlatList
-                      data={item.analysis.selectedItems}
-                      horizontal
-                      pagingEnabled
-                      showsHorizontalScrollIndicator={false}
-                      snapToInterval={SCREEN_WIDTH - 48}
-                      decelerationRate="fast"
-                      onScroll={(event) => {
-                        const index = Math.round(
-                          event.nativeEvent.contentOffset.x /
-                            (SCREEN_WIDTH - 48)
-                        );
-                        setCurrentImageIndex(index);
-                      }}
-                      renderItem={({ item: clothItem }) => (
-                        <View style={styles.outfitImageContainer}>
-                          <Image
-                            source={{ uri: clothItem.imageUrl }}
-                            style={styles.outfitImage}
-                          />
-                          <View style={styles.itemNameBadge}>
-                            <Text style={styles.itemNameText}>
-                              {clothItem.name}
-                            </Text>
-                            <Text style={styles.itemCategoryText}>
-                              {clothItem.category}
-                            </Text>
-                          </View>
-                        </View>
-                      )}
-                      keyExtractor={(clothItem, idx) =>
-                        clothItem.id || idx.toString()
-                      }
-                    />
-
-                    {/* 페이지 인디케이터 */}
-                    <View style={styles.paginationContainer}>
-                      {item.analysis.selectedItems.map((_, index) => (
-                        <View
-                          key={index}
-                          style={[
-                            styles.paginationDot,
-                            currentImageIndex === index &&
-                              styles.paginationDotActive,
-                          ]}
-                        />
-                      ))}
-                    </View>
-
-                    {/* AI 분석 상세 */}
-                    <View style={styles.analysisCard}>
-                      <View style={styles.scoreRow}>
-                        <View style={styles.scoreItem}>
-                          <Text style={styles.scoreLabel}>조합 적합도</Text>
-                          <Text style={styles.scoreValue}>
-                            {item.analysis.compatibility}/10
-                          </Text>
-                        </View>
-                        <View style={styles.scoreItem}>
-                          <Text style={styles.scoreLabel}>색상 조화</Text>
-                          <Text style={styles.scoreValue}>
-                            {item.analysis.colorHarmony.score}/10
-                          </Text>
-                        </View>
-                        <View style={styles.scoreItem}>
-                          <Text style={styles.scoreLabel}>스타일 일관성</Text>
-                          <Text style={styles.scoreValue}>
-                            {item.analysis.styleConsistency}/10
-                          </Text>
-                        </View>
-                      </View>
-
-                      <View style={styles.adviceSection}>
-                        <Text style={styles.adviceTitle}>AI 조언</Text>
-                        <Text style={styles.adviceText}>
-                          {item.analysis.advice}
-                        </Text>
-                      </View>
-
-                      {/* 개선 제안 */}
-                      {item.analysis.suggestions.length > 0 && (
-                        <View style={styles.suggestionsSection}>
-                          <Text style={styles.adviceTitle}>개선 제안</Text>
-                          {item.analysis.suggestions.map((suggestion, idx) => (
-                            <View key={idx} style={styles.suggestionItem}>
-                              <Text style={styles.suggestionBullet}>•</Text>
-                              <Text style={styles.suggestionText}>
-                                {suggestion}
-                              </Text>
-                            </View>
-                          ))}
-                        </View>
-                      )}
-
-                      {/* 보색 제안 */}
-                      {item.analysis.colorHarmony.complementaryColors.length >
-                        0 && (
-                        <View style={styles.colorSection}>
-                          <Text style={styles.adviceTitle}>추천 보색</Text>
-                          <View style={styles.colorList}>
-                            {item.analysis.colorHarmony.complementaryColors.map(
-                              (color, idx) => (
-                                <View key={idx} style={styles.colorChip}>
-                                  <Text style={styles.colorChipText}>
-                                    {color}
-                                  </Text>
-                                </View>
-                              )
-                            )}
-                          </View>
-                        </View>
-                      )}
-                    </View>
-                  </>
-                )}
               </View>
             )}
-            keyExtractor={(item, index) => index.toString()}
+            keyExtractor={(item) => item.id}
           />
 
-          {/* 추천 페이지 인디케이터 */}
-          <View style={styles.recommendationPaginationContainer}>
-            {recommendations.map((_, index) => (
+          {/* 페이지 인디케이터 */}
+          <View style={styles.paginationContainer}>
+            {analysis.selectedItems.map((_, index) => (
               <View
                 key={index}
                 style={[
-                  styles.recommendationPaginationDot,
-                  currentRecommendationIndex === index &&
-                    styles.recommendationPaginationDotActive,
+                  styles.paginationDot,
+                  currentImageIndex === index && styles.paginationDotActive,
                 ]}
               />
             ))}
           </View>
 
-          {/* 새 아이템 추천 (하단) */}
-          {newItemRecommendations.length > 0 && (
-            <View style={styles.newItemsSection}>
-              <Text style={styles.sectionTitle}>AI 추천 아이템</Text>
-              <Text style={styles.newItemsSubtitle}>
-                옷장에 추가하면 좋을 아이템
+          {/* AI 분석 상세 */}
+          <View style={styles.analysisCard}>
+            <View style={styles.scoreRow}>
+              <View style={styles.scoreItem}>
+                <Text style={styles.scoreLabel}>조합 적합도</Text>
+                <Text style={styles.scoreValue}>
+                  {analysis.compatibility}/10
+                </Text>
+              </View>
+              <View style={styles.scoreItem}>
+                <Text style={styles.scoreLabel}>색상 조화</Text>
+                <Text style={styles.scoreValue}>
+                  {analysis.colorHarmony.score}/10
+                </Text>
+              </View>
+              <View style={styles.scoreItem}>
+                <Text style={styles.scoreLabel}>스타일 일관성</Text>
+                <Text style={styles.scoreValue}>
+                  {analysis.styleConsistency}/10
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.adviceSection}>
+              <Text style={styles.adviceTitle}>AI 조언</Text>
+              <Text style={styles.adviceText}>{analysis.advice}</Text>
+            </View>
+
+            {/* 개선 제안 */}
+            {analysis.suggestions.length > 0 && (
+              <View style={styles.suggestionsSection}>
+                <Text style={styles.adviceTitle}>개선 제안</Text>
+                {analysis.suggestions.map((suggestion, idx) => (
+                  <View key={idx} style={styles.suggestionItem}>
+                    <Text style={styles.suggestionBullet}>•</Text>
+                    <Text style={styles.suggestionText}>{suggestion}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* 보색 제안 */}
+            {analysis.colorHarmony.complementaryColors.length > 0 && (
+              <View style={styles.colorSection}>
+                <Text style={styles.adviceTitle}>추천 보색</Text>
+                <View style={styles.colorList}>
+                  {analysis.colorHarmony.complementaryColors.map(
+                    (color, idx) => (
+                      <View key={idx} style={styles.colorChip}>
+                        <Text style={styles.colorChipText}>{color}</Text>
+                      </View>
+                    )
+                  )}
+                </View>
+              </View>
+            )}
+          </View>
+
+          {/* 같이 있으면 좋을 아이템 */}
+          {suggestedItems.length > 0 && (
+            <View style={styles.suggestedItemsSection}>
+              <Text style={styles.sectionTitle}>같이 있으면 좋을 아이템</Text>
+              <Text style={styles.suggestedItemsSubtitle}>
+                이 코디에 추가하면 더 완성도가 높아집니다
               </Text>
-              {newItemRecommendations.map((newItem, index) => (
-                <View key={index} style={styles.newItemCard}>
-                  <View style={styles.newItemHeader}>
-                    <Text style={styles.newItemName}>{newItem.item}</Text>
-                    <View style={styles.newItemCategoryBadge}>
-                      <Text style={styles.newItemCategoryText}>
-                        {newItem.category}
+              {suggestedItems.map((item, index) => (
+                <View key={index} style={styles.suggestedItemCard}>
+                  <View style={styles.suggestedItemHeader}>
+                    <Text style={styles.suggestedItemName}>{item.item}</Text>
+                    <View style={styles.suggestedItemCategoryBadge}>
+                      <Text style={styles.suggestedItemCategoryText}>
+                        {item.category}
                       </Text>
                     </View>
                   </View>
-                  <Text style={styles.newItemReason}>{newItem.reason}</Text>
+                  <Text style={styles.suggestedItemReason}>{item.reason}</Text>
                 </View>
               ))}
             </View>
@@ -484,6 +456,40 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
+    color: "#666",
+  },
+  weatherCard: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#f9f9f9",
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 16,
+  },
+  weatherLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  weatherInfo: {
+    gap: 2,
+  },
+  weatherTemp: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#000",
+  },
+  weatherCondition: {
+    fontSize: 14,
+    color: "#666",
+  },
+  weatherRight: {
+    alignItems: "flex-end",
+    gap: 4,
+  },
+  weatherDetail: {
+    fontSize: 12,
     color: "#666",
   },
   section: {
@@ -570,8 +576,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-  recommendationContainer: {
-    width: SCREEN_WIDTH,
+  resultSection: {
     paddingHorizontal: 24,
   },
   resultHeader: {
@@ -579,6 +584,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 16,
+  },
+  resultTitle: {
+    fontSize: 20,
+    fontWeight: "700",
   },
   refreshButton: {
     flexDirection: "row",
@@ -589,51 +598,43 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#666",
   },
-  matchBadgeContainer: {
-    marginBottom: 16,
-  },
   matchBadge: {
     alignSelf: "flex-start",
     backgroundColor: "rgba(0, 0, 0, 0.7)",
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 20,
+    marginBottom: 16,
   },
   matchBadgeText: {
     color: "#fff",
     fontSize: 12,
     fontWeight: "600",
   },
-  outfitImageContainer: {
+  itemCard: {
     width: SCREEN_WIDTH - 48,
     marginRight: 0,
-    position: "relative",
     borderRadius: 16,
     overflow: "hidden",
     backgroundColor: "#f5f5f5",
   },
-  outfitImage: {
+  itemImage: {
     width: "100%",
-    height: 500,
+    height: 300,
     backgroundColor: "#f5f5f5",
   },
-  itemNameBadge: {
-    position: "absolute",
-    bottom: 16,
-    left: 16,
-    right: 16,
-    backgroundColor: "rgba(255, 255, 255, 0.95)",
-    padding: 12,
-    borderRadius: 12,
+  itemInfo: {
+    padding: 16,
+    backgroundColor: "#fff",
   },
-  itemNameText: {
-    fontSize: 16,
+  itemName: {
+    fontSize: 18,
     fontWeight: "600",
     color: "#000",
     marginBottom: 4,
   },
-  itemCategoryText: {
-    fontSize: 13,
+  itemCategory: {
+    fontSize: 14,
     color: "#666",
   },
   paginationContainer: {
@@ -658,6 +659,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f9f9f9",
     borderRadius: 16,
     padding: 20,
+    marginBottom: 24,
   },
   scoreRow: {
     flexDirection: "row",
@@ -731,54 +733,36 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#666",
   },
-  recommendationPaginationContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 24,
-    marginBottom: 32,
-    gap: 8,
-  },
-  recommendationPaginationDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#ddd",
-  },
-  recommendationPaginationDotActive: {
-    width: 24,
-    backgroundColor: "#000",
-  },
-  newItemsSection: {
+  suggestedItemsSection: {
     marginTop: 32,
     paddingTop: 24,
     borderTopWidth: 1,
     borderTopColor: "#e5e5e5",
   },
-  newItemsSubtitle: {
+  suggestedItemsSubtitle: {
     fontSize: 14,
     color: "#666",
     marginBottom: 16,
   },
-  newItemCard: {
+  suggestedItemCard: {
     backgroundColor: "#f9f9f9",
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
   },
-  newItemHeader: {
+  suggestedItemHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 8,
   },
-  newItemName: {
+  suggestedItemName: {
     fontSize: 16,
     fontWeight: "600",
     color: "#000",
     flex: 1,
   },
-  newItemCategoryBadge: {
+  suggestedItemCategoryBadge: {
     backgroundColor: "#fff",
     paddingVertical: 4,
     paddingHorizontal: 10,
@@ -786,11 +770,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#ddd",
   },
-  newItemCategoryText: {
+  suggestedItemCategoryText: {
     fontSize: 12,
     color: "#666",
   },
-  newItemReason: {
+  suggestedItemReason: {
     fontSize: 14,
     color: "#333",
     lineHeight: 20,

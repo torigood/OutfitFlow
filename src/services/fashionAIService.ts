@@ -44,7 +44,11 @@ export const analyzeOutfitCombination = async (
 ${itemsDescription}
 
 ${preferredStyle ? `선호 스타일: ${preferredStyle}` : ""}
-${temperature !== undefined ? `현재 기온: ${temperature}°C` : ""}
+${
+  temperature !== undefined
+    ? `현재 기온: ${temperature}°C - 이 온도에 적합한지 반드시 고려하세요`
+    : ""
+}
 
 다음 JSON 형식으로 응답해주세요:
 {
@@ -123,23 +127,22 @@ export const analyzeSingleItem = async (
 };
 
 /**
- * 자동으로 옷장에서 최적의 조합을 추천
+ * 날씨 기반 스마트 코디 추천
+ * 유저가 선택한 아이템을 무조건 포함하고, 부족한 부분을 AI가 채워서 완성
  */
-export const recommendOutfitAutomatically = async (
-  allItems: ClothingItem[],
+export const recommendSmartOutfit = async (
+  userSelectedItems: ClothingItem[], // 유저가 선택한 아이템 (0개 이상)
+  allItems: ClothingItem[], // 옷장 전체
   preferredStyle: FashionStyle,
   temperature?: number
 ): Promise<OutfitAnalysis> => {
   try {
-    if (allItems.length < 2) {
-      throw new Error("옷장에 최소 2개 이상의 옷이 필요합니다.");
-    }
+    // 유저 선택 아이템으로 시작
+    const finalItems: ClothingItem[] = [...userSelectedItems];
 
-    let itemsToUse = allItems;
-
-    // 온도가 제공된 경우에만 계절 필터링
+    // 온도 기반 계절 필터링
+    let availableItems = allItems;
     if (temperature !== undefined) {
-      // 온도에 맞는 계절 필터링
       let seasonFilter: string[] = [];
       if (temperature <= 5) {
         seasonFilter = ["겨울"];
@@ -151,64 +154,87 @@ export const recommendOutfitAutomatically = async (
         seasonFilter = ["여름"];
       }
 
-      // 계절에 맞는 옷 필터링
       const seasonalItems = allItems.filter((item) =>
         seasonFilter.some((season) => item.seasons.includes(season))
       );
-
-      // 필터링된 옷이 충분하지 않으면 전체 사용
-      itemsToUse = seasonalItems.length >= 2 ? seasonalItems : allItems;
+      availableItems = seasonalItems.length >= 2 ? seasonalItems : allItems;
     }
 
-    // 카테고리별로 그룹화
-    const topItems = itemsToUse.filter((item) => item.category === "상의");
-    const bottomItems = itemsToUse.filter((item) => item.category === "하의");
-    const outerItems = itemsToUse.filter((item) => item.category === "아우터");
-    const shoeItems = itemsToUse.filter((item) => item.category === "신발");
+    // 이미 선택된 아이템 제외
+    const remainingItems = availableItems.filter(
+      (item) => !userSelectedItems.find((selected) => selected.id === item.id)
+    );
 
-    // 기본 조합 선택 (상의 + 하의)
-    const selectedItems: ClothingItem[] = [];
+    // 카테고리별 그룹화 (선택되지 않은 아이템들)
+    const topItems = remainingItems.filter((item) => item.category === "상의");
+    const bottomItems = remainingItems.filter(
+      (item) => item.category === "하의"
+    );
+    const outerItems = remainingItems.filter(
+      (item) => item.category === "아우터"
+    );
+    const shoeItems = remainingItems.filter((item) => item.category === "신발");
 
-    if (topItems.length > 0) {
-      selectedItems.push(topItems[Math.floor(Math.random() * topItems.length)]);
+    // 이미 선택된 카테고리 확인
+    const selectedCategories = userSelectedItems.map((item) => item.category);
+
+    // 상의가 없으면 추가
+    if (!selectedCategories.includes("상의") && topItems.length > 0) {
+      finalItems.push(topItems[Math.floor(Math.random() * topItems.length)]);
     }
-    if (bottomItems.length > 0) {
-      selectedItems.push(
+
+    // 하의가 없으면 추가
+    if (!selectedCategories.includes("하의") && bottomItems.length > 0) {
+      finalItems.push(
         bottomItems[Math.floor(Math.random() * bottomItems.length)]
       );
     }
 
-    // 추가 아이템 (온도에 따라 또는 랜덤)
+    // 추운 날씨면 아우터 추가
     if (
-      (temperature === undefined || temperature <= 15) &&
-      outerItems.length > 0
+      temperature !== undefined &&
+      temperature <= 15 &&
+      !selectedCategories.includes("아우터") &&
+      outerItems.length > 0 &&
+      finalItems.length < 4
     ) {
-      selectedItems.push(
+      finalItems.push(
         outerItems[Math.floor(Math.random() * outerItems.length)]
       );
     }
-    if (shoeItems.length > 0 && selectedItems.length < 4) {
-      selectedItems.push(shoeItems[Math.floor(Math.random() * shoeItems.length)]);
+
+    // 신발 추가
+    if (
+      !selectedCategories.includes("신발") &&
+      shoeItems.length > 0 &&
+      finalItems.length < 4
+    ) {
+      finalItems.push(shoeItems[Math.floor(Math.random() * shoeItems.length)]);
     }
 
-    // 최소 2개 이상 확보
-    if (selectedItems.length < 2) {
-      selectedItems.push(...itemsToUse.slice(0, 2));
+    // 최소 2개 확보
+    if (finalItems.length < 2 && remainingItems.length > 0) {
+      const needed = 2 - finalItems.length;
+      finalItems.push(...remainingItems.slice(0, needed));
+    }
+
+    if (finalItems.length < 2) {
+      throw new Error("코디를 완성하기에 옷이 부족합니다.");
     }
 
     // 중복 제거
     const uniqueItems = Array.from(
-      new Map(selectedItems.map((item) => [item.id, item])).values()
+      new Map(finalItems.map((item) => [item.id, item])).values()
     );
 
-    // 조합 분석
+    // AI 분석
     return await analyzeOutfitCombination(
       uniqueItems.slice(0, 4),
       preferredStyle,
       temperature
     );
   } catch (error) {
-    console.error("자동 추천 오류:", error);
+    console.error("스마트 추천 오류:", error);
     throw error;
   }
 };
@@ -222,18 +248,16 @@ export const recommendNewItems = async (
   temperature?: number
 ): Promise<{ category: string; item: string; reason: string }[]> => {
   try {
-    // 기존 옷장 정보 요약
-    const categories = existingItems.map((item) => item.category);
-    const colors = existingItems.map((item) => item.color);
-    const seasons = existingItems.flatMap((item) => item.seasons.split(", "));
+    // 기존 옷장 정보 상세 요약
+    const itemDetails = existingItems.map(
+      (item) => `${item.category} - ${item.color} ${item.name} (${item.brand})`
+    );
 
     const summary = `
-기존 옷장 정보:
-- 카테고리: ${categories.join(", ")}
-- 색상: ${colors.join(", ")}
-- 계절: ${[...new Set(seasons)].join(", ")}
-- 총 ${existingItems.length}개의 아이템
+기존 옷장에 있는 아이템들:
+${itemDetails.join("\n")}
 
+총 ${existingItems.length}개의 아이템 보유
 선호 스타일: ${preferredStyle}
 ${temperature !== undefined ? `현재 온도: ${temperature}°C` : ""}
 `;
@@ -242,13 +266,21 @@ ${temperature !== undefined ? `현재 온도: ${temperature}°C` : ""}
 
 ${summary}
 
+**중요**: 위에 나열된 기존 옷장 아이템과 **유사하거나 중복되는 아이템은 절대 추천하지 마세요**.
+옷장에 없거나 부족한 카테고리, 색상, 스타일의 아이템만 추천해주세요.
+${
+  temperature !== undefined
+    ? `현재 온도(${temperature}°C)를 고려하여 지금 시즌에 활용도가 높은 아이템을 우선 추천해주세요.`
+    : ""
+}
+
 다음 JSON 형식으로 3-5개의 새로운 아이템을 추천해주세요:
 {
   "recommendations": [
     {
       "category": "카테고리 (상의, 하의, 아우터, 신발, 악세사리)",
       "item": "구체적인 아이템 이름 (예: 브라운 치노팬츠, 와이드 슬랙스)",
-      "reason": "추천 이유 (1-2문장)"
+      "reason": "왜 이 아이템이 옷장에 필요한지 설명 (1-2문장)"
     }
   ]
 }
