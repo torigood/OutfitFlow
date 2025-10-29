@@ -8,7 +8,6 @@ import {
   Image,
   ActivityIndicator,
   Platform,
-  FlatList,
   Dimensions,
   RefreshControl,
 } from "react-native";
@@ -45,9 +44,20 @@ const STYLE_ICONS: Record<FashionStyle, any> = {
   기타: "ellipsis-horizontal",
 };
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+// 카드 너비 계산 함수
+const getCardWidth = () => {
+  const screenWidth = Dimensions.get("window").width;
+  if (Platform.OS === "web") {
+    return Math.min(screenWidth * 0.6, 800); // 웹: 화면의 60% 또는 최대 800px
+  }
+  return screenWidth - 48; // 모바일: 기존과 동일
+};
 
 export default function AIRecommendScreen() {
+  const CARD_WIDTH = getCardWidth();
+  const scrollViewRef = React.useRef<ScrollView>(null);
+  const isRequestingRef = React.useRef(false); // API 요청 중 플래그
+
   const [clothes, setClothes] = useState<ClothingItem[]>([]);
   const [selectedItems, setSelectedItems] = useState<ClothingItem[]>([]);
   const [selectedStyle, setSelectedStyle] = useState<FashionStyle>("캐주얼");
@@ -95,7 +105,7 @@ export default function AIRecommendScreen() {
     if (selectedItems.find((i) => i.id === item.id)) {
       setSelectedItems(selectedItems.filter((i) => i.id !== item.id));
     } else {
-      if (selectedItems.length < 4) {
+      if (selectedItems.length < clothes.length + 1) {
         setSelectedItems([...selectedItems, item]);
       }
     }
@@ -103,54 +113,118 @@ export default function AIRecommendScreen() {
 
   // AI 스마트 추천 받기
   const handleGetRecommendation = async () => {
+    // 이중 체크: ref와 state 모두 확인
+    if (isRequestingRef.current || isLoading) {
+      console.warn("⚠️ 중복 호출 차단! 이미 AI 추천을 불러오는 중입니다.");
+      return;
+    }
+
     if (clothes.length < 2) {
       alert("옷장에 최소 2개 이상의 옷이 필요합니다!");
       return;
     }
 
     try {
+      // 즉시 플래그 설정 (중복 호출 완전 차단)
+      isRequestingRef.current = true;
+
+      // 새로운 추천을 받는 동안 기존 결과 먼저 숨기기
+      setAnalysis(null);
+      setSuggestedItems([]);
       setIsLoading(true);
 
+      console.log("=== AI 추천 시작 ===");
+      console.log("시간:", new Date().toISOString());
+      console.log("선택된 아이템:", selectedItems.length);
+      console.log("전체 옷:", clothes.length);
+
       // 스마트 추천 (유저 선택 아이템 포함 or 전체 자동)
+      console.log("1️⃣ 코디 조합 추천 API 호출 중...");
       const outfitAnalysis = await recommendSmartOutfit(
         selectedItems,
         clothes,
         selectedStyle,
         weather?.temperature // 날씨 API에서 가져온 온도 전달
       );
+      console.log("✅ 코디 조합 추천 완료");
 
       // 같이 있으면 좋을 아이템 추천
+      console.log("2️⃣ 새 아이템 추천 API 호출 중...");
       const newItems = await recommendNewItems(
         clothes,
         selectedStyle,
         weather?.temperature
       );
+      console.log("✅ 새 아이템 추천 완료");
 
       setAnalysis(outfitAnalysis);
       setSuggestedItems(newItems);
       setCurrentImageIndex(0);
+      console.log("=== AI 추천 완료 ===");
+      console.log("종료 시간:", new Date().toISOString());
     } catch (error: any) {
-      console.error("AI 분석 오류:", error);
+      console.error("=== AI 분석 오류 ===", error);
       alert(error instanceof Error ? error.message : "AI 분석에 실패했습니다.");
     } finally {
       setIsLoading(false);
+      isRequestingRef.current = false; // 플래그 해제
+      console.log("로딩 상태 해제");
     }
   };
 
-  // 전체 새로고침 (Pull-to-Refresh)
+  // 화면 초기화 (추천 결과 지우기)
+  const handleReset = () => {
+    setAnalysis(null);
+    setSuggestedItems([]);
+    setSelectedItems([]);
+    setCurrentImageIndex(0);
+  };
+
+  // 이전 이미지로 이동
+  const handlePrevImage = () => {
+    if (currentImageIndex > 0) {
+      const newIndex = currentImageIndex - 1;
+      setCurrentImageIndex(newIndex);
+      scrollViewRef.current?.scrollTo({
+        x: newIndex * CARD_WIDTH,
+        animated: true,
+      });
+    }
+  };
+
+  // 다음 이미지로 이동
+  const handleNextImage = () => {
+    if (analysis && currentImageIndex < analysis.selectedItems.length - 1) {
+      const newIndex = currentImageIndex + 1;
+      setCurrentImageIndex(newIndex);
+      scrollViewRef.current?.scrollTo({
+        x: newIndex * CARD_WIDTH,
+        animated: true,
+      });
+    }
+  };
+
+  // 특정 이미지로 이동
+  const handleGoToImage = (index: number) => {
+    setCurrentImageIndex(index);
+    scrollViewRef.current?.scrollTo({
+      x: index * CARD_WIDTH,
+      animated: true,
+    });
+  };
+
+  // 전체 새로고침 (Pull-to-Refresh) - 옷장과 날씨만 갱신
   const handleRefreshAll = async () => {
     setRefreshing(true);
     await loadClothes();
     await loadWeather();
-    if (clothes.length >= 2) {
-      await handleGetRecommendation();
-    }
     setRefreshing(false);
   };
 
   return (
     <ScrollView
       style={styles.container}
+      contentContainerStyle={styles.contentContainer}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={handleRefreshAll} />
       }
@@ -271,10 +345,17 @@ export default function AIRecommendScreen() {
       <TouchableOpacity
         style={[
           styles.recommendButton,
-          (clothes.length < 2 || isLoading) && styles.recommendButtonDisabled,
+          (clothes.length < 2 || isLoading || isRequestingRef.current) &&
+            styles.recommendButtonDisabled,
         ]}
-        onPress={handleGetRecommendation}
-        disabled={clothes.length < 2 || isLoading}
+        onPress={() => {
+          console.log("🔘 AI 추천 버튼 클릭됨");
+          console.log("현재 로딩 상태:", isLoading);
+          console.log("현재 요청 플래그:", isRequestingRef.current);
+          handleGetRecommendation();
+        }}
+        disabled={clothes.length < 2 || isLoading || isRequestingRef.current}
+        activeOpacity={0.7}
       >
         {isLoading ? (
           <ActivityIndicator color="#fff" />
@@ -292,13 +373,37 @@ export default function AIRecommendScreen() {
           {/* 헤더 */}
           <View style={styles.resultHeader}>
             <Text style={styles.resultTitle}>추천 코디</Text>
-            <TouchableOpacity
-              onPress={handleGetRecommendation}
-              style={styles.refreshButton}
-            >
-              <Ionicons name="refresh-outline" size={18} color="#666" />
-              <Text style={styles.refreshText}>새로고침</Text>
-            </TouchableOpacity>
+            <View style={styles.headerButtons}>
+              <TouchableOpacity
+                onPress={() => {
+                  console.log("🔄 새 추천 버튼 클릭됨");
+                  handleGetRecommendation();
+                }}
+                style={[
+                  styles.newRecommendButton,
+                  (isLoading || isRequestingRef.current) &&
+                    styles.newRecommendButtonDisabled,
+                ]}
+                disabled={isLoading || isRequestingRef.current}
+                activeOpacity={0.7}
+              >
+                {isLoading ? (
+                  <ActivityIndicator size="small" color="#999" />
+                ) : (
+                  <>
+                    <Ionicons name="sparkles-outline" size={18} color="#000" />
+                    <Text style={styles.newRecommendText}>새 추천</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleReset}
+                style={styles.resetButton}
+              >
+                <Ionicons name="close-outline" size={18} color="#666" />
+                <Text style={styles.resetText}>초기화</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* 매칭도 배지 */}
@@ -309,42 +414,74 @@ export default function AIRecommendScreen() {
           </View>
 
           {/* 아이템 갤러리 (스와이프) */}
-          <FlatList
-            data={analysis.selectedItems}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            snapToInterval={SCREEN_WIDTH - 48}
-            snapToAlignment="center"
-            decelerationRate="fast"
-            scrollEventThrottle={16}
-            onScroll={(event) => {
-              const index = Math.round(
-                event.nativeEvent.contentOffset.x / (SCREEN_WIDTH - 48)
-              );
-              setCurrentImageIndex(index);
-            }}
-            renderItem={({ item: clothItem }) => (
-              <View style={styles.itemCard}>
-                <Image
-                  source={{ uri: clothItem.imageUrl }}
-                  style={styles.itemImage}
-                  resizeMode="cover"
-                />
-                <View style={styles.itemInfo}>
-                  <Text style={styles.itemName}>{clothItem.name}</Text>
-                  <Text style={styles.itemCategory}>{clothItem.category}</Text>
-                </View>
-              </View>
+          <View style={styles.galleryContainer}>
+            {/* 왼쪽 화살표 (웹 전용) */}
+            {Platform.OS === "web" && currentImageIndex > 0 && (
+              <TouchableOpacity
+                style={styles.arrowButtonLeft}
+                onPress={handlePrevImage}
+              >
+                <Ionicons name="chevron-back" size={32} color="#fff" />
+              </TouchableOpacity>
             )}
-            keyExtractor={(item) => item.id}
-          />
 
-          {/* 페이지 인디케이터 */}
+            <ScrollView
+              ref={scrollViewRef}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={Platform.OS !== "web"}
+              snapToInterval={CARD_WIDTH}
+              snapToAlignment="start"
+              decelerationRate="fast"
+              scrollEventThrottle={16}
+              onScroll={(event) => {
+                const index = Math.round(
+                  event.nativeEvent.contentOffset.x / CARD_WIDTH
+                );
+                setCurrentImageIndex(index);
+              }}
+              style={[styles.imageScrollView, { width: CARD_WIDTH }]}
+              contentContainerStyle={styles.imageScrollContent}
+            >
+              {analysis.selectedItems.map((clothItem) => (
+                <View
+                  key={clothItem.id}
+                  style={[styles.itemCard, { width: CARD_WIDTH }]}
+                >
+                  <Image
+                    source={{ uri: clothItem.imageUrl }}
+                    style={styles.itemImage}
+                    resizeMode="cover"
+                  />
+                  <View style={styles.itemInfo}>
+                    <Text style={styles.itemName}>{clothItem.name}</Text>
+                    <Text style={styles.itemCategory}>
+                      {clothItem.category}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+
+            {/* 오른쪽 화살표 (웹 전용) */}
+            {Platform.OS === "web" &&
+              analysis &&
+              currentImageIndex < analysis.selectedItems.length - 1 && (
+                <TouchableOpacity
+                  style={styles.arrowButtonRight}
+                  onPress={handleNextImage}
+                >
+                  <Ionicons name="chevron-forward" size={32} color="#fff" />
+                </TouchableOpacity>
+              )}
+          </View>
+
+          {/* 페이지 인디케이터 (클릭 가능) */}
           <View style={styles.paginationContainer}>
             {analysis.selectedItems.map((_, index) => (
-              <View
+              <TouchableOpacity
                 key={index}
+                onPress={() => handleGoToImage(index)}
                 style={[
                   styles.paginationDot,
                   currentImageIndex === index && styles.paginationDotActive,
@@ -446,17 +583,22 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
   },
+  contentContainer: {
+    alignItems: Platform.OS === "web" ? "center" : undefined,
+  },
   header: {
-    padding: 24,
-    paddingTop: Platform.OS === "web" ? 24 : 60,
+    padding: Platform.OS === "web" ? 40 : 24,
+    paddingTop: Platform.OS === "web" ? 40 : 60,
+    width: Platform.OS === "web" ? "100%" : undefined,
+    maxWidth: Platform.OS === "web" ? 1200 : undefined,
   },
   title: {
-    fontSize: 28,
+    fontSize: Platform.OS === "web" ? 36 : 28,
     fontWeight: "bold",
     marginBottom: 8,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: Platform.OS === "web" ? 16 : 14,
     color: "#666",
   },
   weatherCard: {
@@ -465,7 +607,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#f9f9f9",
     borderRadius: 16,
-    padding: 16,
+    padding: Platform.OS === "web" ? 24 : 16,
     marginTop: 16,
   },
   weatherLeft: {
@@ -494,11 +636,13 @@ const styles = StyleSheet.create({
     color: "#666",
   },
   section: {
-    paddingHorizontal: 24,
+    paddingHorizontal: Platform.OS === "web" ? 40 : 24,
     marginBottom: 32,
+    width: Platform.OS === "web" ? "100%" : undefined,
+    maxWidth: Platform.OS === "web" ? 1200 : undefined,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: Platform.OS === "web" ? 22 : 18,
     fontWeight: "600",
     marginBottom: 16,
   },
@@ -563,22 +707,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#000",
-    marginHorizontal: 24,
-    padding: 18,
+    marginHorizontal: Platform.OS === "web" ? 40 : 24,
+    padding: Platform.OS === "web" ? 20 : 18,
     borderRadius: 12,
     gap: 8,
     marginBottom: 32,
+    maxWidth: Platform.OS === "web" ? 1200 : undefined,
+    alignSelf: Platform.OS === "web" ? "center" : undefined,
+    width: Platform.OS === "web" ? "100%" : undefined,
   },
   recommendButtonDisabled: {
     backgroundColor: "#ccc",
   },
   recommendButtonText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: Platform.OS === "web" ? 18 : 16,
     fontWeight: "600",
   },
   resultSection: {
-    paddingHorizontal: 24,
+    paddingHorizontal: Platform.OS === "web" ? 40 : 24,
+    width: Platform.OS === "web" ? "100%" : undefined,
+    maxWidth: Platform.OS === "web" ? 1200 : undefined,
+    alignSelf: Platform.OS === "web" ? "center" : undefined,
   },
   resultHeader: {
     flexDirection: "row",
@@ -586,9 +736,84 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 16,
   },
+  galleryContainer: {
+    position: "relative",
+    width: "100%",
+    alignItems: "center",
+    overflow: "hidden",
+  },
+  imageScrollView: {
+    flexGrow: 0,
+    // width is set dynamically via inline style
+  },
+  imageScrollContent: {
+    paddingHorizontal: 0,
+  },
+  arrowButtonLeft: {
+    position: "absolute",
+    left: 16,
+    top: "50%",
+    transform: [{ translateY: -25 }],
+    zIndex: 10,
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: "center",
+    alignItems: "center",
+    cursor: "pointer",
+  },
+  arrowButtonRight: {
+    position: "absolute",
+    right: 16,
+    top: "50%",
+    transform: [{ translateY: -25 }],
+    zIndex: 10,
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: "center",
+    alignItems: "center",
+    cursor: "pointer",
+  },
   resultTitle: {
-    fontSize: 20,
+    fontSize: Platform.OS === "web" ? 28 : 20,
     fontWeight: "700",
+  },
+  headerButtons: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  newRecommendButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#f0f0f0",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+  },
+  newRecommendText: {
+    fontSize: 13,
+    color: "#000",
+    fontWeight: "600",
+  },
+  newRecommendButtonDisabled: {
+    backgroundColor: "#e0e0e0",
+    opacity: 0.6,
+  },
+  resetButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+  },
+  resetText: {
+    fontSize: 13,
+    color: "#666",
   },
   refreshButton: {
     flexDirection: "row",
@@ -602,40 +827,42 @@ const styles = StyleSheet.create({
   matchBadge: {
     alignSelf: "flex-start",
     backgroundColor: "rgba(0, 0, 0, 0.7)",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    paddingVertical: Platform.OS === "web" ? 10 : 6,
+    paddingHorizontal: Platform.OS === "web" ? 18 : 12,
     borderRadius: 20,
     marginBottom: 16,
   },
   matchBadgeText: {
     color: "#fff",
-    fontSize: 12,
+    fontSize: Platform.OS === "web" ? 16 : 12,
     fontWeight: "600",
   },
   itemCard: {
-    width: SCREEN_WIDTH - 48,
+    // width는 인라인 스타일로 동적 설정
     marginRight: 0,
+    marginLeft: 0,
     borderRadius: 16,
     overflow: "hidden",
+    height: Platform.OS === "web" ? 800 : 600,
     backgroundColor: "#f5f5f5",
   },
   itemImage: {
     width: "100%",
-    height: 300,
+    height: Platform.OS === "web" ? 700 : 500,
     backgroundColor: "#f5f5f5",
   },
   itemInfo: {
-    padding: 16,
+    padding: Platform.OS === "web" ? 24 : 16,
     backgroundColor: "#fff",
   },
   itemName: {
-    fontSize: 18,
+    fontSize: Platform.OS === "web" ? 24 : 18,
     fontWeight: "600",
     color: "#000",
     marginBottom: 4,
   },
   itemCategory: {
-    fontSize: 14,
+    fontSize: Platform.OS === "web" ? 18 : 14,
     color: "#666",
   },
   paginationContainer: {
@@ -651,6 +878,7 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
     backgroundColor: "#ddd",
+    cursor: Platform.OS === "web" ? "pointer" : undefined,
   },
   paginationDotActive: {
     width: 20,
@@ -659,7 +887,7 @@ const styles = StyleSheet.create({
   analysisCard: {
     backgroundColor: "#f9f9f9",
     borderRadius: 16,
-    padding: 20,
+    padding: Platform.OS === "web" ? 32 : 20,
     marginBottom: 24,
   },
   scoreRow: {
@@ -674,27 +902,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   scoreLabel: {
-    fontSize: 12,
+    fontSize: Platform.OS === "web" ? 16 : 12,
     color: "#666",
     marginBottom: 4,
   },
   scoreValue: {
-    fontSize: 24,
+    fontSize: Platform.OS === "web" ? 32 : 24,
     fontWeight: "bold",
   },
   adviceSection: {
     marginBottom: 20,
   },
   adviceTitle: {
-    fontSize: 15,
+    fontSize: Platform.OS === "web" ? 20 : 15,
     fontWeight: "600",
     marginBottom: 8,
     color: "#000",
   },
   adviceText: {
-    fontSize: 14,
+    fontSize: Platform.OS === "web" ? 18 : 14,
     color: "#333",
-    lineHeight: 22,
+    lineHeight: Platform.OS === "web" ? 28 : 22,
   },
   suggestionsSection: {
     marginBottom: 20,
@@ -710,9 +938,9 @@ const styles = StyleSheet.create({
   },
   suggestionText: {
     flex: 1,
-    fontSize: 14,
+    fontSize: Platform.OS === "web" ? 18 : 14,
     color: "#333",
-    lineHeight: 22,
+    lineHeight: Platform.OS === "web" ? 28 : 22,
   },
   colorSection: {
     marginTop: 8,
@@ -758,7 +986,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   suggestedItemName: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: "600",
     color: "#000",
     flex: 1,
@@ -772,11 +1000,11 @@ const styles = StyleSheet.create({
     borderColor: "#ddd",
   },
   suggestedItemCategoryText: {
-    fontSize: 12,
+    fontSize: 13,
     color: "#666",
   },
   suggestedItemReason: {
-    fontSize: 14,
+    fontSize: 16,
     color: "#333",
     lineHeight: 20,
   },

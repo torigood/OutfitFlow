@@ -1,5 +1,6 @@
 import { OPENWEATHER_API_KEY } from "@env";
 import { WeatherInfo } from "../types/ai";
+import * as Location from "expo-location";
 
 const OPENWEATHER_API_BASE = "https://api.openweathermap.org/data/2.5";
 
@@ -119,6 +120,39 @@ export const getCurrentWeatherByCity = async (
         error instanceof Error ? error.message : "알 수 없는 오류"
       }`
     );
+  }
+};
+
+/**
+ * 현재 위치 기반 날씨 가져오기 (GPS 사용)
+ * @returns 날씨 정보
+ */
+export const getWeatherByCurrentLocation = async (): Promise<WeatherInfo> => {
+  try {
+    // 위치 권한 요청
+    const { status } = await Location.requestForegroundPermissionsAsync();
+
+    if (status !== "granted") {
+      console.warn("위치 권한이 거부되었습니다. 기본 위치(서울)를 사용합니다.");
+      // 권한이 없으면 서울 날씨 반환
+      return await getCurrentWeather(37.5665, 126.978);
+    }
+
+    // 현재 위치 가져오기
+    const location = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.Balanced, // 균형잡힌 정확도 (배터리 절약)
+    });
+
+    const { latitude, longitude } = location.coords;
+    console.log(`현재 위치: 위도 ${latitude}, 경도 ${longitude}`);
+
+    // 현재 위치의 날씨 가져오기
+    return await getCurrentWeather(latitude, longitude);
+  } catch (error) {
+    console.error("현재 위치 날씨 조회 오류:", error);
+    console.warn("기본 위치(서울)를 사용합니다.");
+    // 오류 발생 시 서울 날씨 반환
+    return await getCurrentWeather(37.5665, 126.978);
   }
 };
 
