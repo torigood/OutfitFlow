@@ -199,7 +199,8 @@ export default function AIRecommendScreen() {
       {/* 옷 선택 영역 (선택 사항) */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>
-          옷 선택하기 ({selectedItems.length}/4) - 선택 안 해도 추천 가능
+          옷 선택하기 ({selectedItems.length}/{clothes.length}) - 선택 안 해도
+          추천 가능
         </Text>
         <ScrollView
           horizontal
