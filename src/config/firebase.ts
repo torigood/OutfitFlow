@@ -2,6 +2,7 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
+import { getAuth } from "firebase/auth";
 import {
   FIREBASE_API_KEY,
   FIREBASE_AUTH_DOMAIN,
@@ -26,8 +27,9 @@ const firebaseConfig = {
 // Firebase 초기화
 const app = initializeApp(firebaseConfig);
 
-// Firestore와 Storage 인스턴스 생성
+// Firestore, Storage, Auth 인스턴스 생성
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+export const auth = getAuth(app);
 
 export default app;

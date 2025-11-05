@@ -13,18 +13,27 @@ import {
 import { db } from "../config/firebase";
 import { ClothingItem } from "../types/wardrobe";
 
-const WARDROBE_COLLECTION = "wardrobe";
+/**
+ * 사용자별 옷장 컬렉션 경로 가져오기
+ * @param userId - 사용자 ID
+ * @returns Firestore 컬렉션 경로
+ */
+const getUserWardrobeCollection = (userId: string) => {
+  return collection(db, "users", userId, "wardrobe");
+};
 
 /**
  * 옷 아이템 추가
+ * @param userId - 사용자 ID
  * @param item - 옷 정보 (imageUrl 포함)
  * @returns 생성된 문서 ID
  */
 export const addClothingItem = async (
+  userId: string,
   item: Omit<ClothingItem, "id" | "createdAt" | "updatedAt">
 ): Promise<string> => {
   try {
-    const docRef = await addDoc(collection(db, WARDROBE_COLLECTION), {
+    const docRef = await addDoc(getUserWardrobeCollection(userId), {
       ...item,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
@@ -42,13 +51,14 @@ export const addClothingItem = async (
 };
 
 /**
- * 모든 옷 아이템 가져오기
+ * 사용자의 모든 옷 아이템 가져오기
+ * @param userId - 사용자 ID
  * @returns 옷 목록 (생성일 기준 내림차순)
  */
-export const getClothingItems = async (): Promise<ClothingItem[]> => {
+export const getClothingItems = async (userId: string): Promise<ClothingItem[]> => {
   try {
     const q = query(
-      collection(db, WARDROBE_COLLECTION),
+      getUserWardrobeCollection(userId),
       orderBy("createdAt", "desc")
     );
     const querySnapshot = await getDocs(q);
@@ -86,15 +96,17 @@ export const getClothingItems = async (): Promise<ClothingItem[]> => {
 
 /**
  * 옷 아이템 수정
+ * @param userId - 사용자 ID
  * @param id - 문서 ID
  * @param updates - 수정할 필드
  */
 export const updateClothingItem = async (
+  userId: string,
   id: string,
   updates: Partial<Omit<ClothingItem, "id" | "createdAt" | "updatedAt">>
 ): Promise<void> => {
   try {
-    const docRef = doc(db, WARDROBE_COLLECTION, id);
+    const docRef = doc(db, "users", userId, "wardrobe", id);
     await updateDoc(docRef, {
       ...updates,
       updatedAt: serverTimestamp(),
@@ -111,11 +123,12 @@ export const updateClothingItem = async (
 
 /**
  * 옷 아이템 삭제
+ * @param userId - 사용자 ID
  * @param id - 문서 ID
  */
-export const deleteClothingItem = async (id: string): Promise<void> => {
+export const deleteClothingItem = async (userId: string, id: string): Promise<void> => {
   try {
-    const docRef = doc(db, WARDROBE_COLLECTION, id);
+    const docRef = doc(db, "users", userId, "wardrobe", id);
     await deleteDoc(docRef);
   } catch (error) {
     console.error("옷 삭제 오류:", error);

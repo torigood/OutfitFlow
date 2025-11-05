@@ -27,6 +27,7 @@ import {
   deleteClothingItem,
 } from "../services/wardrobeService";
 import { ClothingItem } from "../types/wardrobe";
+import { useAuth } from "../contexts/AuthContext";
 
 const CATEGORIES = ["전체", "상의", "하의", "아우터", "신발", "악세사리"];
 const SEASONS = ["봄", "여름", "가을", "겨울"];
@@ -62,6 +63,7 @@ const showConfirm = (
 };
 
 export default function WardrobeScreen() {
+  const { user } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState("전체");
   const [searchQuery, setSearchQuery] = useState("");
   const [clothes, setClothes] = useState<ClothingItem[]>([]);
@@ -99,9 +101,11 @@ export default function WardrobeScreen() {
   }, []);
 
   const loadClothes = async () => {
+    if (!user) return;
+
     try {
       setIsLoading(true);
-      const items = await getClothingItems();
+      const items = await getClothingItems(user.uid);
       setClothes(items);
     } catch (error) {
       showAlert(
@@ -117,9 +121,11 @@ export default function WardrobeScreen() {
 
   // Pull-to-refresh 핸들러
   const onRefresh = async () => {
+    if (!user) return;
+
     setRefreshing(true);
     try {
-      const items = await getClothingItems();
+      const items = await getClothingItems(user.uid);
       setClothes(items);
     } catch (error) {
       showAlert(
@@ -227,13 +233,15 @@ export default function WardrobeScreen() {
 
   // 아이템 삭제
   const handleDeleteItem = () => {
+    if (!user) return;
+
     showConfirm("삭제 확인", "이 아이템을 삭제하시겠습니까?", async () => {
       try {
         setIsUploading(true);
-        await deleteClothingItem(selectedItem.id);
+        await deleteClothingItem(user.uid, selectedItem.id);
         setIsDetailModalVisible(false);
         setSelectedItem(null);
-        showAlert("성공", "아이템이 삭제되었습니다.");
+        showAlert("아이템이 삭제되었습니다.");
         // 목록 새로고침
         await loadClothes();
       } catch (error) {
@@ -257,6 +265,11 @@ export default function WardrobeScreen() {
 
   // 아이템 추가 또는 수정
   const handleAddItem = async () => {
+    if (!user) {
+      showAlert("오류", "로그인이 필요합니다.");
+      return;
+    }
+
     if (!selectedImage || !itemName || !itemCategory) {
       showAlert("입력 오류", "이미지, 아이템 이름, 카테고리는 필수입니다.");
       return;
@@ -285,7 +298,7 @@ export default function WardrobeScreen() {
 
       if (isEditMode && selectedItem) {
         // 수정 모드
-        await updateClothingItem(selectedItem.id, {
+        await updateClothingItem(user.uid, selectedItem.id, {
           name: itemName,
           color: itemColor,
           brand: itemBrand,
@@ -297,7 +310,7 @@ export default function WardrobeScreen() {
         showAlert("성공", "아이템이 수정되었습니다!");
       } else {
         // 추가 모드
-        await addClothingItem({
+        await addClothingItem(user.uid, {
           name: itemName,
           color: itemColor,
           brand: itemBrand,

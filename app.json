@@ -14,8 +14,15 @@
     },
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.OutfitFlow.firebase",
+      "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "이 앱은 현재 위치 기반 날씨 정보를 제공하기 위해 위치 정보가 필요합니다."
+      },
+      "config": {
+        "googleSignIn": {
+          "reservedClientId": "com.googleusercontent.apps.504972635537-a621tgqcpahvhfs78a5srpekvod5hc1c"
+        }
       }
     },
     "android": {
@@ -23,10 +30,9 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "permissions": [
-        "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION"
-      ],
+      "package": "com.OutfitFlow.firebase",
+      "googleServicesFile": "./google-services.json",
+      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
@@ -36,6 +42,17 @@
     "plugins": [
       "expo-asset",
       "expo-font",
+      "@react-native-firebase/app",
+      "@react-native-firebase/auth",
+      "@react-native-google-signin/google-signin",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ],
       [
         "expo-image-picker",
         {

@@ -12,6 +12,7 @@ import {
   RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "../contexts/AuthContext";
 import { getClothingItems } from "../services/wardrobeService";
 import {
   recommendSmartOutfit,
@@ -54,6 +55,7 @@ const getCardWidth = () => {
 };
 
 export default function AIRecommendScreen() {
+  const { user } = useAuth();
   const CARD_WIDTH = getCardWidth();
   const scrollViewRef = React.useRef<ScrollView>(null);
   const isRequestingRef = React.useRef(false); // API 요청 중 플래그
@@ -82,8 +84,9 @@ export default function AIRecommendScreen() {
   }, []);
 
   const loadClothes = async () => {
+    if (!user?.uid) return;
     try {
-      const items = await getClothingItems();
+      const items = await getClothingItems(user.uid);
       setClothes(items);
     } catch (error) {
       console.error("옷 목록 불러오기 오류:", error);
