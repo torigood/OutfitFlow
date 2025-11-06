@@ -1,22 +1,21 @@
 // src/screens/auth/LandingScreen.tsx
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   Animated,
-  useWindowDimensions,
   Platform,
   SafeAreaView,
   Pressable,
+  FlatList,
+  Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Sparkles, Cloud, Shirt, ArrowRight } from "lucide-react-native";
-
-const AnimatedArrow = Animated.createAnimatedComponent(ArrowRight as any);
 
 type AuthStackParamList = {
   Landing: undefined;
@@ -28,13 +27,10 @@ type NavigationProp = NativeStackNavigationProp<AuthStackParamList>;
 
 export default function LandingScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const { width } = useWindowDimensions();
-  const isLarge = width >= 900;
 
-  // compute sizes inside component to avoid TS/IDE red lines
-  const heroTitleSize = isLarge ? 84 : 44;
-  const heroSubtitleSize = isLarge ? 22 : 18;
-  const cardWidth = isLarge ? 340 : Math.min(520, width - 40);
+  // mobile-only fixed sizes
+  const heroTitleSize = 44;
+  const heroSubtitleSize = 18;
 
   // animated blobs values
   const blob1 = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
@@ -58,9 +54,10 @@ export default function LandingScreen() {
         ])
       );
 
-    const a1 = loop(blob1, isLarge ? 140 : 120, isLarge ? 40 : 40, 20000);
-    const a2 = loop(blob2, isLarge ? -140 : -100, isLarge ? 120 : 100, 15000);
-    const a3 = loop(blob3, isLarge ? 80 : 60, isLarge ? -80 : -60, 18000);
+    // Mobile-only blob animations
+    const a1 = loop(blob1, 120, 40, 20000);
+    const a2 = loop(blob2, -100, 100, 15000);
+    const a3 = loop(blob3, 60, -60, 18000);
 
     a1.start();
     a2.start();
@@ -71,10 +68,9 @@ export default function LandingScreen() {
       a2.stop();
       a3.stop();
     };
-  }, [blob1, blob2, blob3, isLarge]);
+  }, [blob1, blob2, blob3]);
 
-  // features & advantages
-  const features = [
+  const featuresData = [
     {
       Icon: Sparkles,
       title: "AI 코디 추천",
@@ -91,151 +87,38 @@ export default function LandingScreen() {
       description: "내 옷을 쉽게 보관하고\n효율적으로 활용하세요",
     },
   ];
-  const advantages = [
-    {
-      Icon: "🤖",
-      title: "AI 스타일리스트",
-      description:
-        "Google Gemini AI가 당신의 개인 스타일리스트가 되어 최적의 코디를 추천합니다",
-    },
-    {
-      Icon: "🎨",
-      title: "날씨 기반 추천",
-      description:
-        "실시간 날씨 정보를 반영한 현명한 옷차림으로 완벽한 하루를 시작하세요",
-    },
-    {
-      Icon: "👔",
-      title: "간편한 옷장 관리",
-      description:
-        "AI가 당신의 옷을 쉽게 분류해 줍니다. 사진만 찍으면 옷 종류를 자동으로 분류합니다",
-    },
-  ];
 
-  // interactions
-  const loginHighlightOpacity = useRef(new Animated.Value(0)).current;
-  const handleLoginEnter = () =>
-    Animated.timing(loginHighlightOpacity, {
-      toValue: 1,
-      duration: 160,
-      useNativeDriver: true,
-    }).start();
-  const handleLoginLeave = () =>
-    Animated.timing(loginHighlightOpacity, {
-      toValue: 0,
-      duration: 160,
-      useNativeDriver: true,
-    }).start();
+  const CARD_HEIGHT = 320; // 필요하면 조절
+  const CARD_SPACING = 16;
 
-  const arrowX = useRef(new Animated.Value(0)).current;
-  const arrowEnter = () =>
-    Animated.timing(arrowX, {
-      toValue: 8,
-      duration: 180,
-      useNativeDriver: true,
-    }).start();
-  const arrowLeave = () =>
-    Animated.timing(arrowX, {
-      toValue: 0,
-      duration: 180,
-      useNativeDriver: true,
-    }).start();
+  const [cardIndex, setCardIndex] = useState(0);
+  const scaleAnim = useRef(new Animated.Value(1)).current;
 
-  // FeatureCard component
-  const FeatureCard: React.FC<{
-    Icon: any;
-    title: string;
-    description: string;
-  }> = ({ Icon, title, description }) => {
-    const scale = useRef(new Animated.Value(1)).current;
-    const onEnter = () =>
-      Animated.timing(scale, {
-        toValue: 1.03,
-        duration: 160,
+  const onCardPress = () => {
+    // 축소 피드백 후 다음 카드로
+    Animated.sequence([
+      Animated.timing(scaleAnim, {
+        toValue: 0.96,
+        duration: 90,
         useNativeDriver: true,
-      }).start();
-    const onLeave = () =>
-      Animated.timing(scale, {
-        toValue: 1,
-        duration: 160,
-        useNativeDriver: true,
-      }).start();
-    return (
-      <Pressable
-        onPress={() => {}}
-        onHoverIn={onEnter}
-        onHoverOut={onLeave}
-        onPressIn={onEnter}
-        onPressOut={onLeave}
-      >
-        <Animated.View style={[styles.featureCard, { transform: [{ scale }] }]}>
-          <Icon size={36} color="#6366F1" />
-          <Text style={styles.featureTitle}>{title}</Text>
-          <Text style={styles.featureDescription}>{description}</Text>
-        </Animated.View>
-      </Pressable>
-    );
-  };
-
-  // AdvantageCard component
-  const AdvantageCard: React.FC<{
-    Icon?: any;
-    title: string;
-    description: string;
-  }> = ({ Icon, title, description }) => {
-    const scale = useRef(new Animated.Value(1)).current;
-    const onEnter = () =>
-      Animated.timing(scale, {
-        toValue: 1.02,
-        duration: 140,
-        useNativeDriver: true,
-      }).start();
-    const onLeave = () =>
-      Animated.timing(scale, {
+      }),
+      Animated.timing(scaleAnim, {
         toValue: 1,
         duration: 140,
         useNativeDriver: true,
-      }).start();
-
-    const renderIcon = () => {
-      if (!Icon) return null;
-      if (typeof Icon === "string")
-        return <Text style={styles.advantageEmoji}>{Icon}</Text>;
-      const IconComp = Icon;
-      return <IconComp size={28} color="#111827" style={{ marginRight: 12 }} />;
-    };
-
-    return (
-      <Pressable
-        onHoverIn={onEnter}
-        onHoverOut={onLeave}
-        onPressIn={onEnter}
-        onPressOut={onLeave}
-      >
-        <Animated.View
-          style={[styles.advantageCard, { transform: [{ scale }] }]}
-        >
-          {renderIcon()}
-          <View style={styles.advantageContent}>
-            <Text style={styles.advantageTitle}>{title}</Text>
-            <Text style={styles.advantageDescription}>{description}</Text>
-          </View>
-        </Animated.View>
-      </Pressable>
-    );
+      }),
+    ]).start(() => {
+      const next = cardIndex + 1 < featuresData.length ? cardIndex + 1 : 0; // 루프(멈추게 하려면 조건 변경)
+      setCardIndex(next);
+    });
   };
-
-  // Web-only blur: use CSS filter on blobs wrapper; Native: duplicate bigger faint blobs already used for blur-like look
-  const blobsWrapperWebStyle =
-    Platform.OS === "web"
-      ? ({ filter: "blur(12px)", WebkitFilter: "blur(12px)" } as any)
-      : {};
 
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient
         colors={["#FBFBFF", "#F8F2FB"]}
         style={StyleSheet.absoluteFill}
+        pointerEvents="none"
       />
 
       <View
@@ -247,24 +130,21 @@ export default function LandingScreen() {
       />
 
       {/* BLOBS LAYER */}
-      <View
-        pointerEvents="none"
-        style={[styles.blobsWrapper, blobsWrapperWebStyle]}
-      >
-        {/* Blob duplicates & main blobs (same technique as before) */}
+      <View pointerEvents="none" style={styles.blobsWrapper}>
+        {/* Blob duplicates & main blobs */}
         <Animated.View
           style={[
             styles.blobBase,
-            Platform.OS !== "web" ? styles.blobBlurDuplicate : {},
+            styles.blobBlurDuplicate,
             {
               backgroundColor: "#D8E6FF",
-              left: isLarge ? 80 : 40,
-              top: isLarge ? 120 : 80,
-              width: isLarge ? 640 : 420,
-              height: isLarge ? 640 : 420,
-              borderRadius: isLarge ? 320 : 210,
+              left: 40,
+              top: 80,
+              width: 420,
+              height: 420,
+              borderRadius: 210,
               transform: [{ translateX: blob1.x }, { translateY: blob1.y }],
-              opacity: Platform.OS === "web" ? 0.9 : 0.45,
+              opacity: 0.45,
             },
           ]}
         />
@@ -273,13 +153,13 @@ export default function LandingScreen() {
             styles.blobBase,
             {
               backgroundColor: "#DCE6FF",
-              left: isLarge ? 120 : 60,
-              top: isLarge ? 160 : 100,
-              width: isLarge ? 560 : 360,
-              height: isLarge ? 560 : 360,
-              borderRadius: isLarge ? 280 : 180,
+              left: 60,
+              top: 100,
+              width: 360,
+              height: 360,
+              borderRadius: 180,
               transform: [{ translateX: blob1.x }, { translateY: blob1.y }],
-              opacity: Platform.OS === "web" ? 0.95 : 0.85,
+              opacity: 0.85,
             },
           ]}
         />
@@ -287,16 +167,16 @@ export default function LandingScreen() {
         <Animated.View
           style={[
             styles.blobBase,
-            Platform.OS !== "web" ? styles.blobBlurDuplicate : {},
+            styles.blobBlurDuplicate,
             {
-              backgroundColor: "#F6EEFF",
-              right: isLarge ? 80 : 40,
-              top: isLarge ? 160 : 160,
-              width: isLarge ? 600 : 420,
-              height: isLarge ? 600 : 420,
-              borderRadius: isLarge ? 300 : 210,
+              backgroundColor: "#e8d4ffff",
+              right: 40,
+              top: 160,
+              width: 420,
+              height: 420,
+              borderRadius: 210,
               transform: [{ translateX: blob2.x }, { translateY: blob2.y }],
-              opacity: Platform.OS === "web" ? 0.9 : 0.42,
+              opacity: 0.42,
             },
           ]}
         />
@@ -304,14 +184,14 @@ export default function LandingScreen() {
           style={[
             styles.blobBase,
             {
-              backgroundColor: "#F2E6FF",
-              right: isLarge ? 120 : 60,
-              top: isLarge ? 200 : 180,
-              width: isLarge ? 520 : 360,
-              height: isLarge ? 520 : 360,
-              borderRadius: isLarge ? 260 : 180,
+              backgroundColor: "#ffe6e6ff",
+              right: 60,
+              top: 180,
+              width: 360,
+              height: 360,
+              borderRadius: 180,
               transform: [{ translateX: blob2.x }, { translateY: blob2.y }],
-              opacity: Platform.OS === "web" ? 0.9 : 0.78,
+              opacity: 0.78,
             },
           ]}
         />
@@ -319,16 +199,16 @@ export default function LandingScreen() {
         <Animated.View
           style={[
             styles.blobBase,
-            Platform.OS !== "web" ? styles.blobBlurDuplicate : {},
+            styles.blobBlurDuplicate,
             {
               backgroundColor: "#EEF0FF",
-              left: isLarge ? width / 3 : width / 3,
-              bottom: isLarge ? -80 : -40,
-              width: isLarge ? 520 : 420,
-              height: isLarge ? 520 : 420,
-              borderRadius: isLarge ? 260 : 210,
+              left: "30%",
+              bottom: -40,
+              width: 420,
+              height: 420,
+              borderRadius: 210,
               transform: [{ translateX: blob3.x }, { translateY: blob3.y }],
-              opacity: Platform.OS === "web" ? 0.88 : 0.4,
+              opacity: 0.4,
             },
           ]}
         />
@@ -337,13 +217,13 @@ export default function LandingScreen() {
             styles.blobBase,
             {
               backgroundColor: "#EDEFFF",
-              left: isLarge ? width / 3 + 40 : width / 3 + 20,
-              bottom: isLarge ? -40 : -30,
-              width: isLarge ? 420 : 360,
-              height: isLarge ? 420 : 360,
-              borderRadius: isLarge ? 210 : 180,
+              left: "35%",
+              bottom: -30,
+              width: 360,
+              height: 360,
+              borderRadius: 180,
               transform: [{ translateX: blob3.x }, { translateY: blob3.y }],
-              opacity: Platform.OS === "web" ? 0.88 : 0.7,
+              opacity: 0.7,
             },
           ]}
         />
@@ -351,51 +231,32 @@ export default function LandingScreen() {
 
       {/* CONTENT (above blobs) */}
       <ScrollView
+        style={{ flex: 1, zIndex: 1 }}
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
+        scrollEnabled={true}
       >
         {/* Header */}
-        <View
-          style={[styles.header, { paddingHorizontal: isLarge ? 140 : 28 }]}
-        >
+        <View style={styles.header}>
           <View style={styles.logoRow}>
             <LinearGradient
-              colors={["#6366F1", "#9333EA"]}
-              style={[
-                styles.logoIcon,
-                isLarge ? { width: 52, height: 52, borderRadius: 14 } : {},
-              ]}
+              colors={["#a3a5ffff", "#b268f7ff"]}
+              style={styles.logoIcon}
             >
-              <Sparkles size={isLarge ? 22 : 18} color="#fff" />
+              <Sparkles size={20} color="#fcff59ff" />
             </LinearGradient>
-            <Text style={[styles.logoText, { marginLeft: isLarge ? 16 : 12 }]}>
-              OutfitFlow
-            </Text>
+            <Text style={styles.logoText}>OutfitFlow</Text>
           </View>
 
-          <Pressable
-            onPress={() => navigation.navigate("Login")}
-            onHoverIn={handleLoginEnter}
-            onHoverOut={handleLoginLeave}
-            onPressIn={handleLoginEnter}
-            onPressOut={handleLoginLeave}
-            style={{ borderRadius: 8 }}
-          >
-            <View style={styles.loginInner}>
-              <Animated.View
-                pointerEvents="none"
-                style={[
-                  styles.loginHighlightOverlay,
-                  { opacity: loginHighlightOpacity },
-                ]}
-              />
+          <Pressable onPress={() => navigation.navigate("Login")}>
+            <View style={styles.loginButton}>
               <Text style={styles.loginText}>로그인</Text>
             </View>
           </Pressable>
         </View>
 
         {/* Hero */}
-        <View style={[styles.heroWrap, { paddingTop: isLarge ? 60 : 28 }]}>
+        <View style={styles.heroWrap}>
           <Text style={[styles.heroTitle, { fontSize: heroTitleSize }]}>
             OutfitFlow
           </Text>
@@ -404,66 +265,76 @@ export default function LandingScreen() {
           </Text>
 
           {/* Feature cards */}
-          <View
-            style={[
-              styles.cardsContainer,
-              isLarge ? styles.cardsRow : styles.cardsCol,
-            ]}
-          >
-            {features.map((f, idx) => (
-              <View
-                key={idx}
-                style={{
-                  width: cardWidth,
-                  paddingHorizontal: isLarge ? 12 : 0,
-                }}
+          <View style={[styles.cardsContainer, styles.cardsCol]}>
+            <Animated.View
+              style={{
+                width: "88%",
+                height: CARD_HEIGHT,
+                alignSelf: "center",
+                transform: [{ scale: scaleAnim }],
+              }}
+            >
+              <Pressable
+                onPress={onCardPress}
+                android_ripple={{ color: "rgba(0,0,0,0.04)" }}
+                style={{ flex: 1 }}
               >
-                <FeatureCard
-                  Icon={f.Icon}
-                  title={f.title}
-                  description={f.description}
+                <View style={styles.featureCard}>
+                  {(() => {
+                    const f = featuresData[cardIndex];
+                    const Icon = f.Icon;
+                    return (
+                      <>
+                        <Icon size={36} color="#8a8cffff" />
+                        <Text style={styles.featureTitle}>{f.title}</Text>
+                        <Text style={styles.featureDescription}>
+                          {f.description}
+                        </Text>
+                      </>
+                    );
+                  })()}
+                </View>
+              </Pressable>
+            </Animated.View>
+
+            {/* 인디케이터 */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              {featuresData.map((_, i) => (
+                <View
+                  key={i}
+                  style={{
+                    width: i === cardIndex ? 20 : 8, // 활성일 때 더 길게
+                    height: 8,
+                    borderRadius: 8,
+                    backgroundColor:
+                      i === cardIndex ? "#6366F1" : "rgba(99,102,241,0.18)", // 비활성 투명도 낮춤
+                    opacity: i === cardIndex ? 1 : 0.9, // 약간 투명 추가
+                    transform: [{ scale: i === cardIndex ? 1 : 0.95 }], // 미세한 크기 차
+                  }}
                 />
-              </View>
-            ))}
+              ))}
+            </View>
           </View>
 
           {/* CTA */}
-          <Pressable
-            onPress={() => navigation.navigate("Signup")}
-            onHoverIn={arrowEnter}
-            onHoverOut={arrowLeave}
-            onPressIn={arrowEnter}
-            onPressOut={arrowLeave}
-          >
+          <Pressable onPress={() => navigation.navigate("Signup")}>
             <LinearGradient
-              colors={["#6366F1", "#9333EA"]}
+              colors={["#a3a5ffff", "#b268f7ff"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.cta}
             >
               <Text style={styles.ctaText}>시작하기</Text>
-              <AnimatedArrow
-                size={18}
-                color="#fff"
-                style={{ marginLeft: 10, transform: [{ translateX: arrowX }] }}
-              />
+              <ArrowRight size={18} color="#fff" style={{ marginLeft: 8 }} />
             </LinearGradient>
           </Pressable>
         </View>
-
-        {/* Advantages */}
-        <View style={styles.advantages}>
-          <Text style={styles.advHeading}>OutfitFlow로 볼 수 있는 것</Text>
-          {advantages.map((a, i) => (
-            <AdvantageCard
-              key={i}
-              Icon={a.Icon}
-              title={a.title}
-              description={a.description}
-            />
-          ))}
-        </View>
-
         {/* Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>이미 계정이 있으신가요?</Text>
@@ -479,7 +350,7 @@ export default function LandingScreen() {
 /* ---------- styles ---------- */
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#FBFBFF" },
-  scroll: { paddingBottom: 80 },
+  scroll: { paddingBottom: 20 },
 
   // blobs wrapper
   blobsWrapper: {
@@ -507,9 +378,11 @@ const styles = StyleSheet.create({
   header: {
     zIndex: 10,
     marginTop: 20,
+    paddingHorizontal: 28,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    width: "100%",
   },
   logoRow: { flexDirection: "row", alignItems: "center" },
   logoIcon: {
@@ -521,85 +394,83 @@ const styles = StyleSheet.create({
   },
   logoText: {
     marginLeft: 12,
-    fontSize: 20,
-    fontWeight: "700",
+    fontSize: 25,
+    fontWeight: "600",
     color: "#0f172a",
   },
 
-  loginInner: {
-    position: "relative",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+  loginButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    backgroundColor: "#F3F4F6",
     borderRadius: 8,
-    overflow: "hidden",
   },
-  loginHighlightOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "#EEF2FF",
-    borderRadius: 8,
-    zIndex: 0,
-  },
-  loginText: { zIndex: 1, color: "#374151", fontSize: 16 },
+  loginText: { color: "#374151", fontSize: 16, fontWeight: "500" },
 
-  heroWrap: { zIndex: 10, alignItems: "center", paddingHorizontal: 24 },
+  heroWrap: {
+    zIndex: 10,
+    alignItems: "center",
+    paddingHorizontal: 24,
+    paddingTop: 60,
+    width: "100%",
+  },
   heroTitle: {
-    fontWeight: "800",
+    fontWeight: "400",
     color: "#0f172a",
     marginBottom: 8,
     letterSpacing: -1,
   },
   heroSubtitle: { color: "#6B7280", marginBottom: 28 },
 
-  cardsContainer: { width: "100%", marginBottom: 24 },
-  cardsRow: {
-    flexDirection: "row",
+  cardsContainer: {
+    width: "100%",
+    height: 360,
     justifyContent: "center",
-    marginBottom: 36,
-    gap: 18,
+    alignItems: "center",
   },
   cardsCol: {
     flexDirection: "column",
     alignItems: "center",
     paddingHorizontal: 12,
-    gap: 12,
+    paddingVertical: 8,
+    justifyContent: "center",
   },
 
   featureCard: {
     backgroundColor: "rgba(255,255,255,0.95)",
     borderRadius: 16,
     alignItems: "center",
-    marginBottom: 16,
-    paddingVertical: 28,
+    marginBottom: 1,
+    paddingVertical: 50,
     paddingHorizontal: 22,
     zIndex: 10,
+    maxWidth: 280,
+    minHeight: 220,
     ...Platform.select({
       ios: {
-        shadowColor: "#000",
+        shadowColor: "#d0b7ffff",
         shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.08,
+        shadowOpacity: 0.6,
         shadowRadius: 14,
       },
       android: { elevation: 6 },
-      web: { boxShadow: "0 8px 24px rgba(15,23,42,0.06)" },
     }),
   },
   featureTitle: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: "700",
     color: "#0f172a",
     marginTop: 12,
     marginBottom: 8,
     textAlign: "center",
+    alignItems: "center",
   },
   featureDescription: {
-    fontSize: 13,
+    fontSize: 16,
     color: "#6B7280",
     textAlign: "center",
-    lineHeight: 20,
+    lineHeight: 30,
+    alignItems: "center",
   },
 
   cta: {
@@ -619,28 +490,36 @@ const styles = StyleSheet.create({
         shadowRadius: 28,
       },
       android: { elevation: 8 },
-      web: { boxShadow: "0 18px 40px rgba(99,102,241,0.12)" },
     }),
   },
   ctaText: { color: "#fff", fontWeight: "800", fontSize: 16 },
 
-  advantages: { paddingHorizontal: 24, paddingTop: 48, zIndex: 10 },
+  advantages: {
+    paddingHorizontal: 24,
+    paddingTop: 48,
+    zIndex: 10,
+    alignItems: "center",
+    width: "100%",
+  },
   advHeading: {
     textAlign: "center",
-    fontSize: 24,
-    fontWeight: "700",
+    fontSize: 32,
+    fontWeight: "400",
     marginBottom: 12,
     color: "#0f172a",
   },
   advantageCard: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     backgroundColor: "rgba(255,255,255,0.95)",
     borderRadius: 14,
     padding: 16,
     marginBottom: 12,
     gap: 12,
     zIndex: 10,
+    maxWidth: 900,
+    maxHeight: 120,
+    minHeight: 100,
     ...Platform.select({
       ios: {
         shadowColor: "#000",
@@ -649,15 +528,23 @@ const styles = StyleSheet.create({
         shadowRadius: 10,
       },
       android: { elevation: 3 },
-      web: { boxShadow: "0 6px 18px rgba(15,23,42,0.06)" },
     }),
   },
   advantageEmoji: { fontSize: 30, marginRight: 12 },
   advantageContent: { flex: 1 },
-  advantageTitle: { fontWeight: "700", marginBottom: 6, color: "#0f172a" },
-  advantageDescription: { color: "#6B7280", fontSize: 14, lineHeight: 20 },
+  advantageTitle: {
+    fontSize: 18,
+    marginBottom: 6,
+    color: "#0f172a",
+  },
+  advantageDescription: { color: "#6B7280", fontSize: 16, lineHeight: 20 },
 
-  footer: { alignItems: "center", marginTop: 28, paddingBottom: 48 },
-  footerText: { color: "#9CA3AF" },
+  footer: {
+    alignItems: "center",
+    marginTop: 28,
+    paddingBottom: 48,
+    width: "100%",
+  },
+  footerText: { fontSize: 16, color: "#9CA3AF" },
   footerLink: { color: "#6366F1", marginTop: 6, fontWeight: "600" },
 });

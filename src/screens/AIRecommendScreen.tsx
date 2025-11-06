@@ -45,18 +45,9 @@ const STYLE_ICONS: Record<FashionStyle, any> = {
   기타: "ellipsis-horizontal",
 };
 
-// 카드 너비 계산 함수
-const getCardWidth = () => {
-  const screenWidth = Dimensions.get("window").width;
-  if (Platform.OS === "web") {
-    return Math.min(screenWidth * 0.6, 800); // 웹: 화면의 60% 또는 최대 800px
-  }
-  return screenWidth - 48; // 모바일: 기존과 동일
-};
-
 export default function AIRecommendScreen() {
   const { user } = useAuth();
-  const CARD_WIDTH = getCardWidth();
+  const CARD_WIDTH = Dimensions.get("window").width - 48;
   const scrollViewRef = React.useRef<ScrollView>(null);
   const isRequestingRef = React.useRef(false); // API 요청 중 플래그
 
@@ -418,21 +409,11 @@ export default function AIRecommendScreen() {
 
           {/* 아이템 갤러리 (스와이프) */}
           <View style={styles.galleryContainer}>
-            {/* 왼쪽 화살표 (웹 전용) */}
-            {Platform.OS === "web" && currentImageIndex > 0 && (
-              <TouchableOpacity
-                style={styles.arrowButtonLeft}
-                onPress={handlePrevImage}
-              >
-                <Ionicons name="chevron-back" size={32} color="#fff" />
-              </TouchableOpacity>
-            )}
-
             <ScrollView
               ref={scrollViewRef}
               horizontal
               pagingEnabled
-              showsHorizontalScrollIndicator={Platform.OS !== "web"}
+              showsHorizontalScrollIndicator={true}
               snapToInterval={CARD_WIDTH}
               snapToAlignment="start"
               decelerationRate="fast"
@@ -465,18 +446,6 @@ export default function AIRecommendScreen() {
                 </View>
               ))}
             </ScrollView>
-
-            {/* 오른쪽 화살표 (웹 전용) */}
-            {Platform.OS === "web" &&
-              analysis &&
-              currentImageIndex < analysis.selectedItems.length - 1 && (
-                <TouchableOpacity
-                  style={styles.arrowButtonRight}
-                  onPress={handleNextImage}
-                >
-                  <Ionicons name="chevron-forward" size={32} color="#fff" />
-                </TouchableOpacity>
-              )}
           </View>
 
           {/* 페이지 인디케이터 (클릭 가능) */}
@@ -587,21 +556,19 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   contentContainer: {
-    alignItems: Platform.OS === "web" ? "center" : undefined,
+    alignItems: undefined,
   },
   header: {
-    padding: Platform.OS === "web" ? 40 : 24,
-    paddingTop: Platform.OS === "web" ? 40 : 60,
-    width: Platform.OS === "web" ? "100%" : undefined,
-    maxWidth: Platform.OS === "web" ? 1200 : undefined,
+    padding: 24,
+    paddingTop: 60,
   },
   title: {
-    fontSize: Platform.OS === "web" ? 36 : 28,
+    fontSize: 28,
     fontWeight: "bold",
     marginBottom: 8,
   },
   subtitle: {
-    fontSize: Platform.OS === "web" ? 16 : 14,
+    fontSize: 14,
     color: "#666",
   },
   weatherCard: {
@@ -610,7 +577,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#f9f9f9",
     borderRadius: 16,
-    padding: Platform.OS === "web" ? 24 : 16,
+    padding: 16,
     marginTop: 16,
   },
   weatherLeft: {
@@ -639,13 +606,11 @@ const styles = StyleSheet.create({
     color: "#666",
   },
   section: {
-    paddingHorizontal: Platform.OS === "web" ? 40 : 24,
+    paddingHorizontal: 24,
     marginBottom: 32,
-    width: Platform.OS === "web" ? "100%" : undefined,
-    maxWidth: Platform.OS === "web" ? 1200 : undefined,
   },
   sectionTitle: {
-    fontSize: Platform.OS === "web" ? 22 : 18,
+    fontSize: 18,
     fontWeight: "600",
     marginBottom: 16,
   },
@@ -710,28 +675,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#000",
-    marginHorizontal: Platform.OS === "web" ? 40 : 24,
-    padding: Platform.OS === "web" ? 20 : 18,
+    marginHorizontal: 24,
+    padding: 18,
     borderRadius: 12,
     gap: 8,
     marginBottom: 32,
-    maxWidth: Platform.OS === "web" ? 1200 : undefined,
-    alignSelf: Platform.OS === "web" ? "center" : undefined,
-    width: Platform.OS === "web" ? "100%" : undefined,
   },
   recommendButtonDisabled: {
     backgroundColor: "#ccc",
   },
   recommendButtonText: {
     color: "#fff",
-    fontSize: Platform.OS === "web" ? 18 : 16,
+    fontSize: 16,
     fontWeight: "600",
   },
   resultSection: {
-    paddingHorizontal: Platform.OS === "web" ? 40 : 24,
-    width: Platform.OS === "web" ? "100%" : undefined,
-    maxWidth: Platform.OS === "web" ? 1200 : undefined,
-    alignSelf: Platform.OS === "web" ? "center" : undefined,
+    paddingHorizontal: 24,
   },
   resultHeader: {
     flexDirection: "row",
@@ -752,36 +711,8 @@ const styles = StyleSheet.create({
   imageScrollContent: {
     paddingHorizontal: 0,
   },
-  arrowButtonLeft: {
-    position: "absolute",
-    left: 16,
-    top: "50%",
-    transform: [{ translateY: -25 }],
-    zIndex: 10,
-    backgroundColor: "rgba(0, 0, 0, 0.6)",
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: "center",
-    alignItems: "center",
-    cursor: "pointer",
-  },
-  arrowButtonRight: {
-    position: "absolute",
-    right: 16,
-    top: "50%",
-    transform: [{ translateY: -25 }],
-    zIndex: 10,
-    backgroundColor: "rgba(0, 0, 0, 0.6)",
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: "center",
-    alignItems: "center",
-    cursor: "pointer",
-  },
   resultTitle: {
-    fontSize: Platform.OS === "web" ? 28 : 20,
+    fontSize: 20,
     fontWeight: "700",
   },
   headerButtons: {
@@ -830,14 +761,14 @@ const styles = StyleSheet.create({
   matchBadge: {
     alignSelf: "flex-start",
     backgroundColor: "rgba(0, 0, 0, 0.7)",
-    paddingVertical: Platform.OS === "web" ? 10 : 6,
-    paddingHorizontal: Platform.OS === "web" ? 18 : 12,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
     borderRadius: 20,
     marginBottom: 16,
   },
   matchBadgeText: {
     color: "#fff",
-    fontSize: Platform.OS === "web" ? 16 : 12,
+    fontSize: 12,
     fontWeight: "600",
   },
   itemCard: {
@@ -846,26 +777,26 @@ const styles = StyleSheet.create({
     marginLeft: 0,
     borderRadius: 16,
     overflow: "hidden",
-    height: Platform.OS === "web" ? 800 : 600,
+    height: 600,
     backgroundColor: "#f5f5f5",
   },
   itemImage: {
     width: "100%",
-    height: Platform.OS === "web" ? 700 : 500,
+    height: 500,
     backgroundColor: "#f5f5f5",
   },
   itemInfo: {
-    padding: Platform.OS === "web" ? 24 : 16,
+    padding: 16,
     backgroundColor: "#fff",
   },
   itemName: {
-    fontSize: Platform.OS === "web" ? 24 : 18,
+    fontSize: 18,
     fontWeight: "600",
     color: "#000",
     marginBottom: 4,
   },
   itemCategory: {
-    fontSize: Platform.OS === "web" ? 18 : 14,
+    fontSize: 14,
     color: "#666",
   },
   paginationContainer: {
@@ -881,7 +812,6 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
     backgroundColor: "#ddd",
-    cursor: Platform.OS === "web" ? "pointer" : undefined,
   },
   paginationDotActive: {
     width: 20,
@@ -890,7 +820,7 @@ const styles = StyleSheet.create({
   analysisCard: {
     backgroundColor: "#f9f9f9",
     borderRadius: 16,
-    padding: Platform.OS === "web" ? 32 : 20,
+    padding: 20,
     marginBottom: 24,
   },
   scoreRow: {
@@ -905,27 +835,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   scoreLabel: {
-    fontSize: Platform.OS === "web" ? 16 : 12,
+    fontSize: 12,
     color: "#666",
     marginBottom: 4,
   },
   scoreValue: {
-    fontSize: Platform.OS === "web" ? 32 : 24,
+    fontSize: 24,
     fontWeight: "bold",
   },
   adviceSection: {
     marginBottom: 20,
   },
   adviceTitle: {
-    fontSize: Platform.OS === "web" ? 20 : 15,
+    fontSize: 15,
     fontWeight: "600",
     marginBottom: 8,
     color: "#000",
   },
   adviceText: {
-    fontSize: Platform.OS === "web" ? 18 : 14,
+    fontSize: 14,
     color: "#333",
-    lineHeight: Platform.OS === "web" ? 28 : 22,
+    lineHeight: 22,
   },
   suggestionsSection: {
     marginBottom: 20,
@@ -941,9 +871,9 @@ const styles = StyleSheet.create({
   },
   suggestionText: {
     flex: 1,
-    fontSize: Platform.OS === "web" ? 18 : 14,
+    fontSize: 14,
     color: "#333",
-    lineHeight: Platform.OS === "web" ? 28 : 22,
+    lineHeight: 22,
   },
   colorSection: {
     marginTop: 8,

@@ -15,6 +15,7 @@ import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { LinearGradient } from "expo-linear-gradient";
 import { signInWithEmail, signInWithGoogle } from "../../services/authService";
+import { Sparkles, Mail, Lock } from "lucide-react-native";
 
 type AuthStackParamList = {
   Landing: undefined;
@@ -70,7 +71,10 @@ const LoginScreen = () => {
       >
         {/* Back Button */}
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => navigation.reset({
+            index: 0,
+            routes: [{ name: "Landing" }],
+          })}
           style={styles.backButton}
         >
           <Text style={styles.backButtonText}>← 돌아가기</Text>
@@ -81,12 +85,12 @@ const LoginScreen = () => {
           {/* Logo */}
           <View style={styles.logoSection}>
             <LinearGradient
-              colors={["#6366F1", "#9333EA"]}
+              colors={["#a3a5ffff", "#cb94ffff"]}
               style={styles.logoIcon}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
             >
-              <Text style={styles.logoIconText}>✨</Text>
+              <Sparkles size={24} color="#fcff59ff" />
             </LinearGradient>
             <Text style={styles.logoText}>OutfitFlow</Text>
           </View>
@@ -94,7 +98,9 @@ const LoginScreen = () => {
           {/* Title */}
           <View style={styles.titleSection}>
             <Text style={styles.title}>로그인</Text>
-            <Text style={styles.subtitle}>OutfitFlow에 오신 것을 환영합니다</Text>
+            <Text style={styles.subtitle}>
+              OutfitFlow에 오신 것을 환영합니다
+            </Text>
           </View>
 
           {/* Form */}
@@ -102,7 +108,7 @@ const LoginScreen = () => {
             <View style={styles.inputContainer}>
               <Text style={styles.label}>이메일</Text>
               <View style={styles.inputWrapper}>
-                <Text style={styles.inputIcon}>✉️</Text>
+                <Mail size={20} color="#9CA3AF" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="example@email.com"
@@ -120,7 +126,7 @@ const LoginScreen = () => {
             <View style={styles.inputContainer}>
               <Text style={styles.label}>비밀번호</Text>
               <View style={styles.inputWrapper}>
-                <Text style={styles.inputIcon}>🔒</Text>
+                <Lock size={20} color="#9CA3AF" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="비밀번호 입력"
@@ -160,13 +166,13 @@ const LoginScreen = () => {
               disabled={loading}
             >
               <LinearGradient
-                colors={["#6366F1", "#9333EA"]}
+                colors={["#a3a5ffff", "#cb94ffff"]}
                 style={styles.loginButton}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
               >
                 {loading ? (
-                  <ActivityIndicator color="#FFFFFF" />
+                  <ActivityIndicator color="#ffffffff" />
                 ) : (
                   <Text style={styles.loginButtonText}>로그인</Text>
                 )}
@@ -233,9 +239,10 @@ const styles = StyleSheet.create({
     paddingTop: 48,
   },
   backButton: {
-    marginBottom: 32,
+    marginBottom: 28,
   },
   backButtonText: {
+    paddingTop: 18,
     fontSize: 16,
     color: "#6B7280",
     fontWeight: "500",
@@ -308,7 +315,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   inputIcon: {
-    fontSize: 20,
     marginRight: 8,
   },
   input: {

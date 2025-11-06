@@ -11,16 +11,18 @@ import {
 } from "firebase/auth";
 import { auth } from "../config/firebase";
 import { Platform } from "react-native";
-import { GoogleSignin } from "@react-native-google-signin/google-signin";
-import { FIREBASE_WEB_CLIENT_ID } from "@env";
+import * as AuthSession from "expo-auth-session";
+import * as WebBrowser from "expo-web-browser";
+import { FIREBASE_WEB_CLIENT_ID, FIREBASE_API_KEY } from "@env";
 
-// Google Sign-In 초기화 (모바일용)
-if (Platform.OS !== "web") {
-  GoogleSignin.configure({
-    webClientId: FIREBASE_WEB_CLIENT_ID, // Firebase Console의 Web Client ID
-    offlineAccess: true,
-  });
-}
+// WebBrowser 세션 완료 처리 (모바일 OAuth용)
+WebBrowser.maybeCompleteAuthSession();
+
+// OAuth 설정
+const discovery = {
+  authorizationEndpoint: "https://accounts.google.com/o/oauth2/v2/auth",
+  tokenEndpoint: "https://oauth2.googleapis.com/token",
+};
 
 /**
  * 이메일/비밀번호로 회원가입
@@ -70,7 +72,7 @@ export const signInWithEmail = async (
 };
 
 /**
- * Google 계정으로 로그인 (웹/모바일 모두 지원)
+ * Google 계정으로 로그인 (웹/모바일 모두 지원 - Expo Go 호환)
  */
 export const signInWithGoogle = async (): Promise<User> => {
   try {
@@ -80,26 +82,43 @@ export const signInWithGoogle = async (): Promise<User> => {
       const userCredential = await signInWithPopup(auth, provider);
       return userCredential.user;
     } else {
-      // 모바일: Google Sign-In SDK 사용
-      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-      const signInResult = await GoogleSignin.signIn();
+      // 모바일: Expo AuthSession 사용 (Expo Go 호환)
+      const redirectUri = AuthSession.makeRedirectUri({
+        useProxy: true,
+      });
 
-      // idToken 추출
-      const idToken = signInResult.data?.idToken;
-      if (!idToken) {
-        throw new Error("Google 로그인에 실패했습니다. ID Token을 가져올 수 없습니다.");
+      const request = new AuthSession.AuthRequest({
+        clientId: FIREBASE_WEB_CLIENT_ID,
+        scopes: ["openid", "profile", "email"],
+        redirectUri,
+        responseType: AuthSession.ResponseType.IdToken,
+        usePKCE: false,
+      });
+
+      await request.promptAsync(discovery);
+
+      const result = await request.promptAsync(discovery);
+
+      if (result.type === "success") {
+        const { id_token } = result.params;
+
+        if (!id_token) {
+          throw new Error("Google 로그인에 실패했습니다. ID Token을 가져올 수 없습니다.");
+        }
+
+        // Firebase credential 생성
+        const googleCredential = GoogleAuthProvider.credential(id_token);
+
+        // Firebase에 로그인
+        const userCredential = await signInWithCredential(auth, googleCredential);
+        return userCredential.user;
+      } else {
+        throw new Error("Google 로그인이 취소되었습니다.");
       }
-
-      // Firebase credential 생성
-      const googleCredential = GoogleAuthProvider.credential(idToken);
-
-      // Firebase에 로그인
-      const userCredential = await signInWithCredential(auth, googleCredential);
-      return userCredential.user;
     }
   } catch (error: any) {
     console.error("Google 로그인 오류:", error);
-    throw new Error(getAuthErrorMessage(error.code));
+    throw new Error(getAuthErrorMessage(error.code) || "Google 로그인에 실패했습니다.");
   }
 };
 
@@ -115,21 +134,6 @@ export const signOut = async (): Promise<void> => {
     console.log("🔥 Firebase signOut 실행 중...");
     await firebaseSignOut(auth);
     console.log("✅ Firebase signOut 완료");
-
-    // 모바일에서 Google Sign-In으로 로그인한 경우 GoogleSignin도 로그아웃
-    if (Platform.OS !== "web") {
-      try {
-        const currentUser = GoogleSignin.getCurrentUser();
-        if (currentUser) {
-          console.log("📱 Google Sign-In 로그아웃 실행 중...");
-          await GoogleSignin.signOut();
-          console.log("✅ Google Sign-In 로그아웃 완료");
-        }
-      } catch (googleError) {
-        // Google Sign-In 로그아웃 실패해도 Firebase는 이미 로그아웃됨
-        console.warn("Google Sign-In 로그아웃 실패:", googleError);
-      }
-    }
     console.log("✅ signOut 함수 완료");
   } catch (error: any) {
     console.error("❌ 로그아웃 오류:", error);

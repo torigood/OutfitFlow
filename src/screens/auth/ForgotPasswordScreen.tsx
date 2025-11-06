@@ -9,10 +9,13 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { resetPassword } from "../../services/authService";
+import { Mail, Info } from "lucide-react-native";
 
 type AuthStackParamList = {
   Landing: undefined;
@@ -59,59 +62,67 @@ const ForgotPasswordScreen = () => {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <View style={styles.content}>
-        {/* 헤더 */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          >
-            <Text style={styles.backButtonText}>← 돌아가기</Text>
-          </TouchableOpacity>
-          <Text style={styles.title}>비밀번호 찾기</Text>
-          <Text style={styles.subtitle}>
-            가입하신 이메일 주소를 입력하시면{"\n"}비밀번호 재설정 링크를
-            보내드립니다.
-          </Text>
-        </View>
-
-        {/* 입력 폼 */}
-        <View style={styles.form}>
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>이메일</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="example@email.com"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-              editable={!loading}
-            />
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={styles.content}>
+          {/* 헤더 */}
+          <View style={styles.header}>
+            <TouchableOpacity
+              onPress={() => navigation.reset({
+                index: 0,
+                routes: [{ name: "Landing" }],
+              })}
+              style={styles.backButton}
+            >
+              <Text style={styles.backButtonText}>← 돌아가기</Text>
+            </TouchableOpacity>
+            <Text style={styles.title}>비밀번호 찾기</Text>
+            <Text style={styles.subtitle}>
+              가입하신 이메일 주소를 입력하시면{"\n"}비밀번호 재설정 링크를
+              보내드립니다.
+            </Text>
           </View>
 
-          <TouchableOpacity
-            style={[styles.resetButton, loading && styles.buttonDisabled]}
-            onPress={handleResetPassword}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text style={styles.resetButtonText}>재설정 링크 전송</Text>
-            )}
-          </TouchableOpacity>
-        </View>
+          {/* 입력 폼 */}
+          <View style={styles.form}>
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>이메일</Text>
+              <View style={styles.inputWrapper}>
+                <Mail size={20} color="#9CA3AF" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="example@email.com"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  editable={!loading}
+                />
+              </View>
+            </View>
 
-        {/* 안내 메시지 */}
-        <View style={styles.infoBox}>
-          <Text style={styles.infoIcon}>ℹ️</Text>
-          <Text style={styles.infoText}>
-            이메일이 도착하지 않는다면 스팸함을 확인해주세요.
-          </Text>
+            <TouchableOpacity
+              style={[styles.resetButton, loading && styles.buttonDisabled]}
+              onPress={handleResetPassword}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.resetButtonText}>재설정 링크 전송</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          {/* 안내 메시지 */}
+          <View style={styles.infoBox}>
+            <Info size={20} color="#6B7280" style={styles.infoIcon} />
+            <Text style={styles.infoText}>
+              이메일이 도착하지 않는다면 스팸함을 확인해주세요.
+            </Text>
+          </View>
         </View>
-      </View>
+      </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );
 };
@@ -124,14 +135,15 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingVertical: 20,
+    paddingVertical: 40,
   },
   header: {
     marginTop: 20,
     marginBottom: 32,
   },
   backButton: {
-    marginBottom: 16,
+    marginBottom: 25,
+    marginTop: 5,
   },
   backButtonText: {
     fontSize: 16,
@@ -161,14 +173,23 @@ const styles = StyleSheet.create({
     color: "#2D3142",
     marginBottom: 8,
   },
-  input: {
+  inputWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
     borderColor: "#E5E7EB",
     borderRadius: 8,
-    paddingHorizontal: 16,
+    backgroundColor: "#F9FAFB",
+    paddingHorizontal: 12,
+  },
+  inputIcon: {
+    marginRight: 8,
+  },
+  input: {
+    flex: 1,
     paddingVertical: 12,
     fontSize: 16,
-    backgroundColor: "#F9FAFB",
+    color: "#2D3142",
   },
   resetButton: {
     backgroundColor: "#6C63FF",
@@ -197,7 +218,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   infoIcon: {
-    fontSize: 20,
     marginRight: 12,
   },
   infoText: {

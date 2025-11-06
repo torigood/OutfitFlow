@@ -15,6 +15,7 @@ import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { LinearGradient } from "expo-linear-gradient";
 import { signUpWithEmail, signInWithGoogle } from "../../services/authService";
+import { Mail, Lock, User, Sparkles } from "lucide-react-native";
 
 type AuthStackParamList = {
   Landing: undefined;
@@ -81,7 +82,12 @@ const SignupScreen = () => {
       >
         {/* Back Button */}
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() =>
+            navigation.reset({
+              index: 0,
+              routes: [{ name: "Landing" }],
+            })
+          }
           style={styles.backButton}
         >
           <Text style={styles.backButtonText}>← 돌아가기</Text>
@@ -92,12 +98,12 @@ const SignupScreen = () => {
           {/* Logo */}
           <View style={styles.logoSection}>
             <LinearGradient
-              colors={["#6366F1", "#9333EA"]}
+              colors={["#a3a5ffff", "#b268f7ff"]}
               style={styles.logoIcon}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
             >
-              <Text style={styles.logoIconText}>✨</Text>
+              <Sparkles size={24} color="#fcff59ff" />
             </LinearGradient>
             <Text style={styles.logoText}>OutfitFlow</Text>
           </View>
@@ -105,7 +111,9 @@ const SignupScreen = () => {
           {/* Title */}
           <View style={styles.titleSection}>
             <Text style={styles.title}>회원가입</Text>
-            <Text style={styles.subtitle}>AI 스타일리스트와 함께 시작하세요</Text>
+            <Text style={styles.subtitle}>
+              AI 스타일리스트와 함께 시작하세요
+            </Text>
           </View>
 
           {/* Form */}
@@ -113,7 +121,7 @@ const SignupScreen = () => {
             <View style={styles.inputContainer}>
               <Text style={styles.label}>이름</Text>
               <View style={styles.inputWrapper}>
-                <Text style={styles.inputIcon}>👤</Text>
+                <User size={20} color="#9CA3AF" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="홍길동"
@@ -129,7 +137,7 @@ const SignupScreen = () => {
             <View style={styles.inputContainer}>
               <Text style={styles.label}>이메일</Text>
               <View style={styles.inputWrapper}>
-                <Text style={styles.inputIcon}>✉️</Text>
+                <Mail size={20} color="#9CA3AF" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="example@email.com"
@@ -147,7 +155,7 @@ const SignupScreen = () => {
             <View style={styles.inputContainer}>
               <Text style={styles.label}>비밀번호</Text>
               <View style={styles.inputWrapper}>
-                <Text style={styles.inputIcon}>🔒</Text>
+                <Lock size={20} color="#9CA3AF" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="최소 8자 이상"
@@ -164,7 +172,7 @@ const SignupScreen = () => {
             <View style={styles.inputContainer}>
               <Text style={styles.label}>비밀번호 확인</Text>
               <View style={styles.inputWrapper}>
-                <Text style={styles.inputIcon}>🔒</Text>
+                <Lock size={20} color="#9CA3AF" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="비밀번호 재입력"
@@ -184,7 +192,7 @@ const SignupScreen = () => {
               disabled={loading}
             >
               <LinearGradient
-                colors={["#6366F1", "#9333EA"]}
+                colors={["#a3a5ffff", "#b268f7ff"]}
                 style={styles.signupButton}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
@@ -257,9 +265,10 @@ const styles = StyleSheet.create({
     paddingTop: 48,
   },
   backButton: {
-    marginBottom: 32,
+    marginBottom: 28,
   },
   backButtonText: {
+    paddingTop: 18,
     fontSize: 16,
     color: "#6B7280",
     fontWeight: "500",
@@ -332,7 +341,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   inputIcon: {
-    fontSize: 20,
     marginRight: 8,
   },
   input: {
@@ -387,7 +395,7 @@ const styles = StyleSheet.create({
   googleIcon: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#4285F4",
+    color: "#cc352aff",
     marginRight: 8,
   },
   googleButtonText: {

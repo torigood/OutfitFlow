@@ -1,16 +1,16 @@
 # OutfitFlow ✨
 
-> AI가 추천하는 나만의 스타일 - 스마트 옷장 관리 및 코디 추천 서비스
+> AI가 추천하는 나만의 스타일 - 스마트 옷장 관리 및 코디 추천 모바일 앱
 
 ## 프로젝트 개요
 
-개인 옷장을 디지털로 관리하고, **Google Gemini AI**와 **실시간 날씨 정보**를 활용해 최적의 스타일링을 추천하는 크로스 플랫폼 애플리케이션입니다.
+개인 옷장을 디지털로 관리하고, **Google Gemini AI**와 **실시간 날씨 정보**를 활용해 최적의 스타일링을 추천하는 모바일 애플리케이션입니다.
 
 ### 핵심 가치
 
 - 날씨와 스타일을 고려한 AI 기반 코디 추천
 - 사용자별 완전 격리된 개인 옷장 관리
-- Web/iOS/Android 모든 플랫폼에서 동일한 경험
+- iOS/Android 네이티브 앱으로 최적화된 사용자 경험
 
 ---
 
@@ -34,10 +34,11 @@
 - 색상 조화, 스타일 일관성 평가
 - 옷장에 어울리는 신규 아이템 추천
 
-### 📱 크로스 플랫폼
+### 📱 모바일 네이티브 앱
 
-- React Native 기반 iOS/Android/Web 통합 지원
-- 반응형 UI (웹: 사이드바 / 모바일: 탭 네비게이션)
+- React Native 기반 iOS/Android 네이티브 앱
+- 직관적인 탭 네비게이션 UI
+- 부드러운 화면 전환 애니메이션
 
 ---
 
@@ -76,7 +77,7 @@ Firestore
 
 - **서브컬렉션 구조**: 사용자별 데이터 격리 및 확장성 확보
 - **Context API**: 전역 인증 상태 관리
-- **Platform-specific 로직**: Web/Native 환경별 최적화
+- **네이티브 최적화**: iOS/Android 플랫폼별 최적화된 UI/UX
 
 ---
 
@@ -96,9 +97,15 @@ npm install
 cp .env.example .env
 # .env 파일에 Firebase, Cloudinary, Gemini, OpenWeather API 키 입력
 
-# 4. 앱 실행
-npm start
-# Web: w / iOS: i / Android: a
+# 4. 네이티브 프로젝트 빌드
+npx expo prebuild
+
+# 5. 앱 실행
+# iOS 시뮬레이터 (Mac 필요)
+npx expo run:ios
+
+# Android 에뮬레이터 또는 실제 기기
+npx expo run:android
 ```
 
 ### 필요한 API 키
@@ -175,8 +182,8 @@ src/
 **UI/UX**
 
 - 랜딩 페이지 (애니메이션 블롭, 그라디언트 디자인)
-- 웹 반응형 디자인 (사이드바 네비게이션)
-- iOS/Android/Web 크로스 플랫폼 지원
+- 네이티브 탭 네비게이션 UI
+- 부드러운 화면 전환 애니메이션 (React Navigation Stack)
 
 ### 📝 향후 계획
 
@@ -190,20 +197,22 @@ src/
 
 ## 개발 과정에서 해결한 주요 과제
 
-1. **크로스 플랫폼 인증 구현**
+1. **네이티브 Google Sign-In 구현**
 
-   - Web과 Mobile에서 다른 Google Sign-In SDK 통합 (`signInWithPopup` vs `GoogleSignin`)
-   - Platform-specific 로직으로 통일된 사용자 경험 제공
+   - React Native Google Sign-In SDK 통합
+   - Firebase Authentication과 연동하여 안전한 인증 플로우 구축
+   - iOS/Android 플랫폼별 설정 최적화
 
 2. **사용자별 데이터 격리**
 
    - Firestore 서브컬렉션 구조 설계 (`users/{userId}/wardrobe`)
    - 모든 서비스 함수에 userId 인자 추가로 보안 강화
 
-3. **이미지 업로드 최적화**
+3. **모바일 이미지 업로드 최적화**
 
-   - Web: Blob 기반 / Mobile: FormData 기반 분기 처리
-   - Cloudinary CDN 활용으로 이미지 로딩 속도 개선
+   - Expo Image Picker와 Cloudinary 연동
+   - FormData 기반 업로드로 네이티브 환경 최적화
+   - CDN 활용으로 이미지 로딩 속도 개선
 
 4. **AI 프롬프트 엔지니어링**
    - 날씨, 스타일, 색상을 고려한 복합 분석 프롬프트 설계

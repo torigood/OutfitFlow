@@ -32,13 +32,9 @@ import { useAuth } from "../contexts/AuthContext";
 const CATEGORIES = ["전체", "상의", "하의", "아우터", "신발", "악세사리"];
 const SEASONS = ["봄", "여름", "가을", "겨울"];
 
-// 웹 호환 Alert 래퍼 함수들
+// Alert 래퍼 함수들
 const showAlert = (title: string, message?: string) => {
-  if (Platform.OS === "web") {
-    window.alert(`${title}${message ? `\n${message}` : ""}`);
-  } else {
-    Alert.alert(title, message);
-  }
+  Alert.alert(title, message);
 };
 
 const showConfirm = (
@@ -47,19 +43,10 @@ const showConfirm = (
   onConfirm: () => void,
   onCancel?: () => void
 ) => {
-  if (Platform.OS === "web") {
-    const result = window.confirm(`${title}\n${message}`);
-    if (result) {
-      onConfirm();
-    } else if (onCancel) {
-      onCancel();
-    }
-  } else {
-    Alert.alert(title, message, [
-      { text: "취소", style: "cancel", onPress: onCancel },
-      { text: "확인", style: "destructive", onPress: onConfirm },
-    ]);
-  }
+  Alert.alert(title, message, [
+    { text: "취소", style: "cancel", onPress: onCancel },
+    { text: "확인", style: "destructive", onPress: onConfirm },
+  ]);
 };
 
 export default function WardrobeScreen() {
@@ -357,9 +344,7 @@ export default function WardrobeScreen() {
   });
 
   return (
-    <TouchableWithoutFeedback
-      onPress={Platform.OS === "web" ? undefined : Keyboard.dismiss}
-    >
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={styles.container}>
         {/* 헤더 */}
         <View style={styles.header}>
@@ -540,29 +525,17 @@ export default function WardrobeScreen() {
         {/* 아이템 추가 모달 */}
         <Modal
           visible={isModalVisible}
-          animationType={Platform.OS === "web" ? "fade" : "slide"}
-          presentationStyle={Platform.OS === "web" ? undefined : "formSheet"}
-          transparent={Platform.OS === "web"}
+          animationType="slide"
+          presentationStyle="formSheet"
+          transparent={false}
           onRequestClose={closeModal}
         >
           <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             style={{ flex: 2 }}
           >
-            <View
-              style={
-                Platform.OS === "web"
-                  ? styles.webModalOverlay
-                  : styles.mobileModalContainer
-              }
-            >
-              <View
-                style={
-                  Platform.OS === "web"
-                    ? styles.webModalContent
-                    : styles.modalContainer
-                }
-              >
+            <View style={styles.mobileModalContainer}>
+              <View style={styles.modalContainer}>
                 {/* 모달 헤더 */}
                 <View style={styles.modalHeader}>
                   <Text style={styles.modalTitle}>새 아이템 추가</Text>
@@ -614,22 +587,20 @@ export default function WardrobeScreen() {
                       </TouchableOpacity>
                     )}
 
-                    {/* 카메라 버튼 (모바일만) */}
-                    {Platform.OS !== "web" && (
-                      <TouchableOpacity
-                        style={styles.cameraButton}
-                        onPress={takePhoto}
-                      >
-                        <Ionicons
-                          name="camera-outline"
-                          size={20}
-                          color="#666"
-                        />
-                        <Text style={styles.imageUploadButtonText}>
-                          사진 촬영
-                        </Text>
-                      </TouchableOpacity>
-                    )}
+                    {/* 카메라 버튼 */}
+                    <TouchableOpacity
+                      style={styles.cameraButton}
+                      onPress={takePhoto}
+                    >
+                      <Ionicons
+                        name="camera-outline"
+                        size={20}
+                        color="#666"
+                      />
+                      <Text style={styles.imageUploadButtonText}>
+                        사진 촬영
+                      </Text>
+                    </TouchableOpacity>
                   </View>
 
                   {/* 아이템 이름 */}
@@ -894,9 +865,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#FAFAFA",
-    width: "100%",
-    maxWidth: Platform.select({ web: 1400, default: undefined }),
-    alignSelf: "center",
   },
   header: {
     flexDirection: "row",
@@ -953,15 +921,10 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     fontSize: 15,
-    ...Platform.select({
-      web: {
-        outlineStyle: "none" as any,
-      },
-    }),
   },
   filterSectionContainer: {
-    marginTop: Platform.select({ web: 16, default: 0 }),
-    marginBottom: Platform.select({ web: 20, default: 16 }),
+    marginTop: 0,
+    marginBottom: 16,
     zIndex: 100,
   },
   categoryContainer: {
@@ -1037,12 +1000,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",
-    ...Platform.select({
-      web: {
-        cursor: "pointer",
-        transition: "background-color 0.2s",
-      },
-    }),
   },
   seasonFilterItemHovered: {
     backgroundColor: "#f5f5f5",
@@ -1072,7 +1029,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   clothingCard: {
-    width: Platform.select({ web: "20%", default: "45%" }),
+    width: "45%",
     backgroundColor: "#fff",
     borderRadius: 12,
     overflow: "hidden",
@@ -1121,22 +1078,6 @@ const styles = StyleSheet.create({
   // 모바일 모달 컨테이너
   mobileModalContainer: {
     flex: 1,
-  },
-  // 웹 모달 오버레이 (반투명 배경)
-  webModalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  // 웹 모달 컨텐츠 (중앙 팝업)
-  webModalContent: {
-    width: "90%",
-    maxWidth: 500,
-    maxHeight: "85%",
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    overflow: "hidden",
   },
   // 모달 스타일
   modalContainer: {
@@ -1310,12 +1251,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",
-    ...Platform.select({
-      web: {
-        cursor: "pointer",
-        transition: "background-color 0.2s",
-      },
-    }),
   },
   dropdownItemText: {
     fontSize: 15,
@@ -1366,9 +1301,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   detailModalContent: {
-    width: Platform.select({ web: "90%", default: "95%" }),
-    maxWidth: Platform.select({ web: 500, default: undefined }),
-    height: Platform.select({ web: "85%", default: "90%" }),
+    width: "95%",
+    height: "90%",
     backgroundColor: "#fff",
     borderRadius: 16,
     overflow: "hidden",

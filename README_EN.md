@@ -4,13 +4,13 @@
 
 ## Project Overview
 
-A cross-platform mobile and web application that digitally manages your personal wardrobe and provides optimal styling recommendations using **Google Gemini AI** and **real-time weather data**.
+A mobile application that digitally manages your personal wardrobe and provides optimal styling recommendations using **Google Gemini AI** and **real-time weather data**.
 
 ### Key Value Propositions
 
 - AI-driven outfit recommendations based on weather and personal style
 - Fully isolated personal wardrobe with user-specific data management
-- Seamless experience across Web, iOS, and Android platforms
+- Native iOS and Android app experience
 
 ---
 
@@ -20,7 +20,6 @@ A cross-platform mobile and web application that digitally manages your personal
 
 - Firebase Authentication (Email/Password, Google Social Login)
 - Complete data isolation per user (`users/{userId}/wardrobe`)
-- Cross-platform session management
 
 ### 👔 Wardrobe Management
 
@@ -36,10 +35,11 @@ A cross-platform mobile and web application that digitally manages your personal
 - Style consistency evaluation
 - Personalized new item recommendations based on existing wardrobe
 
-### 📱 Cross-Platform Support
+### 📱 Mobile Native App
 
-- Built with React Native for iOS, Android, and Web
-- Responsive design (Sidebar navigation for web / Tab navigation for mobile)
+- Built with React Native for iOS and Android
+- Intuitive tab navigation UI
+- Smooth screen transition animations
 
 ---
 
@@ -78,7 +78,7 @@ Firestore
 
 - **Subcollection Architecture**: User data isolation and scalability
 - **Context API**: Global authentication state management
-- **Platform-specific Logic**: Optimized for Web and Native environments
+- **Native Optimization**: Optimized UI/UX for iOS/Android platforms
 
 ---
 
@@ -98,9 +98,15 @@ npm install
 cp .env.example .env
 # Add API keys for Firebase, Cloudinary, Gemini, and OpenWeather in .env
 
-# 4. Run the app
-npm start
-# Web: w / iOS: i / Android: a
+# 4. Build native project
+npx expo prebuild
+
+# 5. Run the app
+# iOS Simulator (Mac required)
+npx expo run:ios
+
+# Android Emulator or physical device
+npx expo run:android
 ```
 
 ### Required API Keys
@@ -159,7 +165,6 @@ src/
 
 - Firebase Authentication (Email/Password, Google Social Login)
 - User-specific data isolation (`users/{userId}/wardrobe`)
-- Cross-platform session management
 
 **Wardrobe Management**
 
@@ -177,8 +182,8 @@ src/
 **UI/UX**
 
 - Landing page with animated blobs and gradient design
-- Responsive web design with sidebar navigation
-- iOS/Android/Web cross-platform support
+- Native tab navigation UI
+- Smooth screen transition animations (React Navigation Stack)
 
 ### 📝 Future Roadmap
 
@@ -192,10 +197,11 @@ src/
 
 ## Key Technical Challenges Solved
 
-1. **Cross-Platform Authentication Implementation**
+1. **Native Google Sign-In Implementation**
 
-   - Integrated different Google Sign-In SDKs for Web and Mobile (`signInWithPopup` vs `GoogleSignin`)
-   - Achieved unified user experience through platform-specific logic
+   - Integrated React Native Google Sign-In SDK
+   - Built secure authentication flow with Firebase Authentication integration
+   - Optimized platform-specific configurations for iOS/Android
 
 2. **User Data Isolation**
 
@@ -204,8 +210,9 @@ src/
 
 3. **Image Upload Optimization**
 
-   - Implemented platform-specific handling (Web: Blob-based / Mobile: FormData-based)
-   - Improved image loading speed using Cloudinary CDN
+   - Integrated Expo Image Picker with Cloudinary
+   - Optimized for native environment with FormData-based upload
+   - Improved image loading speed using CDN
 
 4. **AI Prompt Engineering**
    - Designed complex analysis prompts considering weather, style, and color

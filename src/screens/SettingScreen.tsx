@@ -8,52 +8,32 @@ export default function SettingScreen() {
   const { user } = useAuth();
 
   const handleLogout = async () => {
-    console.log("🔘 로그아웃 버튼 클릭됨, Platform:", Platform.OS);
+    console.log("로그아웃 버튼 클릭됨");
 
-    // 웹에서는 window.confirm 사용, 모바일에서는 Alert.alert 사용
-    if (Platform.OS === "web") {
-      console.log("🌐 웹 플랫폼 - window.confirm 사용");
-      const confirmed = window.confirm("정말 로그아웃 하시겠습니까?");
-      console.log("✅ 사용자 확인:", confirmed);
-
-      if (confirmed) {
-        try {
-          console.log("🚀 로그아웃 시작...");
-          await signOut();
-          console.log("✅ 로그아웃 성공!");
-        } catch (error: any) {
-          console.error("❌ 로그아웃 오류:", error);
-          window.alert("로그아웃에 실패했습니다: " + error.message);
-        }
-      } else {
-        console.log("❌ 사용자가 로그아웃 취소");
-      }
-    } else {
-      Alert.alert(
-        "로그아웃",
-        "정말 로그아웃 하시겠습니까?",
-        [
-          {
-            text: "취소",
-            style: "cancel",
+    Alert.alert(
+      "로그아웃",
+      "정말 로그아웃 하시겠습니까?",
+      [
+        {
+          text: "취소",
+          style: "cancel",
+        },
+        {
+          text: "로그아웃",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              console.log("로그아웃 시작...");
+              await signOut();
+              console.log("로그아웃 성공!");
+            } catch (error: any) {
+              console.error("로그아웃 오류:", error);
+              Alert.alert("오류", "로그아웃에 실패했습니다: " + error.message);
+            }
           },
-          {
-            text: "로그아웃",
-            style: "destructive",
-            onPress: async () => {
-              try {
-                console.log("로그아웃 시작...");
-                await signOut();
-                console.log("로그아웃 성공!");
-              } catch (error: any) {
-                console.error("로그아웃 오류:", error);
-                Alert.alert("오류", "로그아웃에 실패했습니다: " + error.message);
-              }
-            },
-          },
-        ]
-      );
-    }
+        },
+      ]
+    );
   };
 
   return (
