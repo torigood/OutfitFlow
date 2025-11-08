@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -12,10 +12,13 @@ import {
   Keyboard,
   TouchableWithoutFeedback,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { LinearGradient } from "expo-linear-gradient";
 import { resetPassword } from "../../services/authService";
 import { Mail, Info } from "lucide-react-native";
+import { colors } from "../../theme/colors";
 
 type AuthStackParamList = {
   Landing: undefined;
@@ -30,6 +33,20 @@ const ForgotPasswordScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      if (e.data.action.type === 'POP' || e.data.action.type === 'GO_BACK') {
+        e.preventDefault();
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Landing' }],
+        });
+      }
+    });
+
+    return unsubscribe;
+  }, [navigation]);
 
   const handleResetPassword = async () => {
     if (!email) {
@@ -58,19 +75,26 @@ const ForgotPasswordScreen = () => {
   };
 
   return (
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
+      <LinearGradient
+        colors={[colors.bgTop, colors.bgBottom]}
+        style={StyleSheet.absoluteFill}
+      />
+
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.content}>
-          {/* 헤더 */}
           <View style={styles.header}>
             <TouchableOpacity
-              onPress={() => navigation.reset({
-                index: 0,
-                routes: [{ name: "Landing" }],
-              })}
+              onPress={() => {
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "Landing" }],
+                });
+              }}
               style={styles.backButton}
             >
               <Text style={styles.backButtonText}>← 돌아가기</Text>
@@ -82,15 +106,15 @@ const ForgotPasswordScreen = () => {
             </Text>
           </View>
 
-          {/* 입력 폼 */}
           <View style={styles.form}>
             <View style={styles.inputContainer}>
               <Text style={styles.label}>이메일</Text>
               <View style={styles.inputWrapper}>
-                <Mail size={20} color="#9CA3AF" style={styles.inputIcon} />
+                <Mail size={20} color={colors.textTertiary} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="example@email.com"
+                  placeholderTextColor={colors.textTertiary}
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
@@ -107,16 +131,15 @@ const ForgotPasswordScreen = () => {
               disabled={loading}
             >
               {loading ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={colors.textOnDark} />
               ) : (
                 <Text style={styles.resetButtonText}>재설정 링크 전송</Text>
               )}
             </TouchableOpacity>
           </View>
 
-          {/* 안내 메시지 */}
           <View style={styles.infoBox}>
-            <Info size={20} color="#6B7280" style={styles.infoIcon} />
+            <Info size={20} color={colors.textSecondary} style={styles.infoIcon} />
             <Text style={styles.infoText}>
               이메일이 도착하지 않는다면 스팸함을 확인해주세요.
             </Text>
@@ -124,13 +147,17 @@ const ForgotPasswordScreen = () => {
         </View>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.bgTop,
+  },
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
   },
   content: {
     flex: 1,
@@ -147,19 +174,20 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 16,
-    color: "#6C63FF",
+    color: colors.textOnDark,
     fontWeight: "600",
   },
   title: {
     fontSize: 32,
     fontWeight: "bold",
-    color: "#2D3142",
+    color: colors.textOnDark,
     marginBottom: 16,
   },
   subtitle: {
     fontSize: 16,
-    color: "#6B7280",
+    color: colors.textOnDark,
     lineHeight: 24,
+    opacity: 0.9,
   },
   form: {
     marginBottom: 24,
@@ -170,16 +198,16 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#2D3142",
+    color: colors.textOnDark,
     marginBottom: 8,
   },
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 8,
-    backgroundColor: "#F9FAFB",
+    borderColor: colors.lightGray,
+    borderRadius: 12,
+    backgroundColor: colors.white,
     paddingHorizontal: 12,
   },
   inputIcon: {
@@ -189,21 +217,21 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     fontSize: 16,
-    color: "#2D3142",
+    color: colors.textOnLight,
   },
   resetButton: {
-    backgroundColor: "#6C63FF",
+    backgroundColor: colors.brand,
     paddingVertical: 16,
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: "center",
-    shadowColor: "#6C63FF",
+    shadowColor: colors.brand,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
     elevation: 6,
   },
   resetButtonText: {
-    color: "#FFFFFF",
+    color: colors.textOnDark,
     fontSize: 16,
     fontWeight: "bold",
   },
@@ -212,9 +240,9 @@ const styles = StyleSheet.create({
   },
   infoBox: {
     flexDirection: "row",
-    backgroundColor: "#F3F4F6",
+    backgroundColor: colors.cardBg,
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: "center",
   },
   infoIcon: {
@@ -223,7 +251,7 @@ const styles = StyleSheet.create({
   infoText: {
     flex: 1,
     fontSize: 14,
-    color: "#6B7280",
+    color: colors.textSecondary,
     lineHeight: 20,
   },
 });

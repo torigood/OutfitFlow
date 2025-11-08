@@ -1,21 +1,27 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
   TextInput,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { LinearGradient } from "expo-linear-gradient";
-import { signInWithEmail, signInWithGoogle } from "../../services/authService";
-import { Sparkles, Mail, Lock } from "lucide-react-native";
+import {
+  signInWithEmail,
+  signInWithGoogle,
+  checkRememberMe,
+} from "../../services/authService";
+import { Sparkles, Mail, Lock, Eye, EyeOff } from "lucide-react-native";
+import Toast from "react-native-toast-message";
+import { colors } from "../../theme/colors";
 
 type AuthStackParamList = {
   Landing: undefined;
@@ -32,18 +38,60 @@ const LoginScreen = () => {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const passwordInputRef = useRef<TextInput>(null);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("beforeRemove", (e) => {
+      // 뒤로가기 제스처나 버튼을 감지하면 Landing으로
+      if (e.data.action.type === "POP" || e.data.action.type === "GO_BACK") {
+        e.preventDefault();
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "Landing" }],
+        });
+      }
+    });
+
+    return unsubscribe;
+  }, [navigation]);
+
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        const storedPreference = await checkRememberMe();
+        if (isMounted) {
+          setRememberMe(storedPreference);
+        }
+      } catch (error) {
+        // ignore preference load errors; fallback to current state
+      }
+    })();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleEmailLogin = async () => {
     if (!email || !password) {
-      Alert.alert("알림", "이메일과 비밀번호를 입력해주세요.");
+      Toast.show({
+        type: "error",
+        text1: "알림",
+        text2: "이메일과 비밀번호를 입력해주세요.",
+      });
       return;
     }
 
     setLoading(true);
     try {
-      await signInWithEmail(email, password);
+      await signInWithEmail(email, password, rememberMe);
     } catch (error: any) {
-      Alert.alert("로그인 실패", error.message);
+      Toast.show({
+        type: "error",
+        text1: "로그인 실패",
+        text2: error.message,
+      });
     } finally {
       setLoading(false);
     }
@@ -52,186 +100,227 @@ const LoginScreen = () => {
   const handleGoogleLogin = async () => {
     setLoading(true);
     try {
-      await signInWithGoogle();
+      await signInWithGoogle(rememberMe);
     } catch (error: any) {
-      Alert.alert("Google 로그인 실패", error.message);
+      Toast.show({
+        type: "error",
+        text1: "Google 로그인 실패",
+        text2: error.message,
+      });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        {/* Back Button */}
-        <TouchableOpacity
-          onPress={() => navigation.reset({
-            index: 0,
-            routes: [{ name: "Landing" }],
-          })}
-          style={styles.backButton}
+        {/* Warm Background */}
+        <LinearGradient
+          colors={[colors.bgTop, colors.bgBottom]}
+          style={StyleSheet.absoluteFill}
+        />
+
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          <Text style={styles.backButtonText}>← 돌아가기</Text>
-        </TouchableOpacity>
-
-        {/* Login Card */}
-        <View style={styles.card}>
-          {/* Logo */}
-          <View style={styles.logoSection}>
-            <LinearGradient
-              colors={["#a3a5ffff", "#cb94ffff"]}
-              style={styles.logoIcon}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
-              <Sparkles size={24} color="#fcff59ff" />
-            </LinearGradient>
-            <Text style={styles.logoText}>OutfitFlow</Text>
-          </View>
-
-          {/* Title */}
-          <View style={styles.titleSection}>
-            <Text style={styles.title}>로그인</Text>
-            <Text style={styles.subtitle}>
-              OutfitFlow에 오신 것을 환영합니다
-            </Text>
-          </View>
-
-          {/* Form */}
-          <View style={styles.form}>
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>이메일</Text>
-              <View style={styles.inputWrapper}>
-                <Mail size={20} color="#9CA3AF" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="example@email.com"
-                  placeholderTextColor="#9CA3AF"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoComplete="email"
-                  editable={!loading}
-                />
-              </View>
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>비밀번호</Text>
-              <View style={styles.inputWrapper}>
-                <Lock size={20} color="#9CA3AF" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="비밀번호 입력"
-                  placeholderTextColor="#9CA3AF"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                  autoComplete="password"
-                  editable={!loading}
-                />
-              </View>
-            </View>
-
-            <View style={styles.optionsRow}>
-              <TouchableOpacity
-                style={styles.checkboxContainer}
-                onPress={() => setRememberMe(!rememberMe)}
-                disabled={loading}
-              >
-                <View style={styles.checkbox}>
-                  {rememberMe && <Text style={styles.checkmark}>✓</Text>}
-                </View>
-                <Text style={styles.checkboxLabel}>로그인 상태 유지</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => navigation.navigate("ForgotPassword")}
-                disabled={loading}
-              >
-                <Text style={styles.forgotPassword}>비밀번호 찾기</Text>
-              </TouchableOpacity>
-            </View>
-
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={handleEmailLogin}
-              disabled={loading}
-            >
-              <LinearGradient
-                colors={["#a3a5ffff", "#cb94ffff"]}
-                style={styles.loginButton}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#ffffffff" />
-                ) : (
-                  <Text style={styles.loginButtonText}>로그인</Text>
-                )}
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
-
-          {/* Divider */}
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>또는</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          {/* Google Login */}
+          {/* Back Button */}
           <TouchableOpacity
-            style={styles.googleButton}
-            onPress={handleGoogleLogin}
-            disabled={loading}
+            onPress={() => {
+              navigation.reset({
+                index: 0,
+                routes: [{ name: "Landing" }],
+              });
+            }}
+            style={styles.backButton}
           >
-            <Text style={styles.googleIcon}>G</Text>
-            <Text style={styles.googleButtonText}>Google로 계속하기</Text>
+            <Text style={styles.backButtonText}>← 돌아가기</Text>
           </TouchableOpacity>
 
-          {/* Signup Link */}
-          <View style={styles.signupSection}>
-            <Text style={styles.signupText}>아직 계정이 없으신가요? </Text>
+          {/* Login Card */}
+          <View style={styles.card}>
+            {/* Logo */}
+            <View style={styles.logoSection}>
+              <LinearGradient
+                colors={[colors.brand, colors.brandLight]}
+                style={styles.logoIcon}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Sparkles size={24} color={colors.textOnDark} />
+              </LinearGradient>
+              <Text style={styles.logoText}>OutfitFlow</Text>
+            </View>
+
+            {/* Title */}
+            <View style={styles.titleSection}>
+              <Text style={styles.title}>로그인</Text>
+              <Text style={styles.subtitle}>
+                OutfitFlow에 오신 것을 환영합니다
+              </Text>
+            </View>
+
+            {/* Form */}
+            <View style={styles.form}>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>이메일</Text>
+                <View style={styles.inputWrapper}>
+                  <Mail
+                    size={20}
+                    color={colors.textTertiary}
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="example@email.com"
+                    placeholderTextColor={colors.textTertiary}
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoComplete="email"
+                    editable={!loading}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>비밀번호</Text>
+                <View style={styles.inputWrapper}>
+                  <Lock
+                    size={20}
+                    color={colors.textTertiary}
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    ref={passwordInputRef}
+                    style={styles.input}
+                    placeholder="비밀번호 입력"
+                    placeholderTextColor={colors.textTertiary}
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry={!showPassword}
+                    autoComplete="password"
+                    editable={!loading}
+                  />
+                  <TouchableOpacity
+                    onPress={() => {
+                      setShowPassword(!showPassword);
+                      setTimeout(() => passwordInputRef.current?.focus(), 0);
+                    }}
+                    disabled={loading}
+                    style={styles.eyeIcon}
+                  >
+                    {showPassword ? (
+                      <Eye size={20} color={colors.textTertiary} />
+                    ) : (
+                      <EyeOff size={20} color={colors.textTertiary} />
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={styles.optionsRow}>
+                <TouchableOpacity
+                  style={styles.checkboxContainer}
+                  onPress={() => setRememberMe(!rememberMe)}
+                  disabled={loading}
+                >
+                  <View style={styles.checkbox}>
+                    {rememberMe && <Text style={styles.checkmark}>✓</Text>}
+                  </View>
+                  <Text style={styles.checkboxLabel}>로그인 상태 유지</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => navigation.navigate("ForgotPassword")}
+                  disabled={loading}
+                >
+                  <Text style={styles.forgotPassword}>비밀번호 찾기</Text>
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={handleEmailLogin}
+                disabled={loading}
+              >
+                <LinearGradient
+                  colors={[colors.brand, colors.brandLight]}
+                  style={styles.loginButton}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  {loading ? (
+                    <ActivityIndicator color={colors.textOnDark} />
+                  ) : (
+                    <Text style={styles.loginButtonText}>로그인</Text>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+
+            {/* Divider */}
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>또는</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            {/* Google Login */}
             <TouchableOpacity
-              onPress={() => navigation.navigate("Signup")}
+              style={styles.googleButton}
+              onPress={handleGoogleLogin}
               disabled={loading}
             >
-              <Text style={styles.signupLink}>회원가입</Text>
+              <Text style={styles.googleIcon}>G</Text>
+              <Text style={styles.googleButtonText}>Google로 계속하기</Text>
             </TouchableOpacity>
-          </View>
-        </View>
 
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>계속 진행하면 OutfitFlow의</Text>
-          <View style={styles.footerLinks}>
-            <TouchableOpacity>
-              <Text style={styles.footerLink}>이용약관</Text>
-            </TouchableOpacity>
-            <Text style={styles.footerText}> 및 </Text>
-            <TouchableOpacity>
-              <Text style={styles.footerLink}>개인정보처리방침</Text>
-            </TouchableOpacity>
+            {/* Signup Link */}
+            <View style={styles.signupSection}>
+              <Text style={styles.signupText}>아직 계정이 없으신가요? </Text>
+              <TouchableOpacity
+                onPress={() => navigation.navigate("Signup")}
+                disabled={loading}
+              >
+                <Text style={styles.signupLink}>회원가입</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-          <Text style={styles.footerText}>에 동의하게 됩니다</Text>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+
+          {/* Footer */}
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>계속 진행하면 OutfitFlow의</Text>
+            <View style={styles.footerLinks}>
+              <TouchableOpacity>
+                <Text style={styles.footerLink}>이용약관</Text>
+              </TouchableOpacity>
+              <Text style={styles.footerText}> 및 </Text>
+              <TouchableOpacity>
+                <Text style={styles.footerLink}>개인정보처리방침</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.footerText}>에 동의하게 됩니다</Text>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.bgTop,
+  },
   container: {
     flex: 1,
-    backgroundColor: "#F9FAFB",
   },
   scrollContent: {
     flexGrow: 1,
@@ -244,16 +333,16 @@ const styles = StyleSheet.create({
   backButtonText: {
     paddingTop: 18,
     fontSize: 16,
-    color: "#6B7280",
+    color: colors.textOnDark,
     fontWeight: "500",
   },
   card: {
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    backgroundColor: colors.cardBg,
     borderRadius: 24,
     padding: 32,
-    shadowColor: "#000",
+    shadowColor: colors.brand,
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.2,
     shadowRadius: 24,
     elevation: 8,
   },
@@ -277,7 +366,7 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#111827",
+    color: colors.textOnLight,
   },
   titleSection: {
     alignItems: "center",
@@ -286,12 +375,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#111827",
+    color: colors.textOnLight,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: "#6B7280",
+    color: colors.textSecondary,
   },
   form: {
     marginBottom: 32,
@@ -302,16 +391,16 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#374151",
+    color: colors.textOnLight,
     marginBottom: 8,
   },
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: colors.lightGray,
     borderRadius: 12,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.white,
     paddingHorizontal: 12,
   },
   inputIcon: {
@@ -321,7 +410,10 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     fontSize: 16,
-    color: "#111827",
+    color: colors.textOnLight,
+  },
+  eyeIcon: {
+    padding: 4,
   },
   optionsRow: {
     flexDirection: "row",
@@ -338,37 +430,37 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderWidth: 2,
-    borderColor: "#D1D5DB",
+    borderColor: colors.lightGray,
     borderRadius: 4,
     justifyContent: "center",
     alignItems: "center",
   },
   checkmark: {
-    color: "#6366F1",
+    color: colors.brand,
     fontSize: 14,
     fontWeight: "bold",
   },
   checkboxLabel: {
     fontSize: 14,
-    color: "#6B7280",
+    color: colors.textSecondary,
   },
   forgotPassword: {
     fontSize: 14,
-    color: "#6366F1",
+    color: colors.brand,
     fontWeight: "500",
   },
   loginButton: {
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: "center",
-    shadowColor: "#6366F1",
+    shadowColor: colors.brand,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.4,
     shadowRadius: 12,
     elevation: 6,
   },
   loginButtonText: {
-    color: "#FFFFFF",
+    color: colors.textOnDark,
     fontSize: 16,
     fontWeight: "bold",
   },
@@ -380,23 +472,23 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: "#E5E7EB",
+    backgroundColor: colors.lightGray,
   },
   dividerText: {
     paddingHorizontal: 16,
     fontSize: 14,
-    color: "#9CA3AF",
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    color: colors.textSecondary,
+    backgroundColor: colors.lightGray,
   },
   googleButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: colors.lightGray,
     borderRadius: 12,
     paddingVertical: 14,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.white,
     marginBottom: 32,
   },
   googleIcon: {
@@ -407,7 +499,7 @@ const styles = StyleSheet.create({
   },
   googleButtonText: {
     fontSize: 16,
-    color: "#374151",
+    color: colors.textOnLight,
     fontWeight: "500",
   },
   signupSection: {
@@ -417,11 +509,11 @@ const styles = StyleSheet.create({
   },
   signupText: {
     fontSize: 14,
-    color: "#6B7280",
+    color: colors.textSecondary,
   },
   signupLink: {
     fontSize: 14,
-    color: "#6366F1",
+    color: colors.brand,
     fontWeight: "600",
   },
   footer: {
@@ -431,7 +523,8 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 12,
-    color: "#9CA3AF",
+    color: colors.textOnDark,
+    opacity: 0.7,
   },
   footerLinks: {
     flexDirection: "row",
@@ -439,7 +532,7 @@ const styles = StyleSheet.create({
   },
   footerLink: {
     fontSize: 12,
-    color: "#6366F1",
+    color: colors.textOnDark,
     textDecorationLine: "underline",
   },
 });

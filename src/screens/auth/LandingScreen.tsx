@@ -7,15 +7,14 @@ import {
   ScrollView,
   Animated,
   Platform,
-  SafeAreaView,
   Pressable,
-  FlatList,
-  Dimensions,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Sparkles, Cloud, Shirt, ArrowRight } from "lucide-react-native";
+import { colors } from "../../theme/colors";
 
 type AuthStackParamList = {
   Landing: undefined;
@@ -31,44 +30,6 @@ export default function LandingScreen() {
   // mobile-only fixed sizes
   const heroTitleSize = 44;
   const heroSubtitleSize = 18;
-
-  // animated blobs values
-  const blob1 = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
-  const blob2 = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
-  const blob3 = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
-
-  useEffect(() => {
-    const loop = (v: Animated.ValueXY, dx: number, dy: number, dur = 18000) =>
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(v, {
-            toValue: { x: dx, y: dy },
-            duration: dur,
-            useNativeDriver: true,
-          }),
-          Animated.timing(v, {
-            toValue: { x: 0, y: 0 },
-            duration: dur,
-            useNativeDriver: true,
-          }),
-        ])
-      );
-
-    // Mobile-only blob animations
-    const a1 = loop(blob1, 120, 40, 20000);
-    const a2 = loop(blob2, -100, 100, 15000);
-    const a3 = loop(blob3, 60, -60, 18000);
-
-    a1.start();
-    a2.start();
-    a3.start();
-
-    return () => {
-      a1.stop();
-      a2.stop();
-      a3.stop();
-    };
-  }, [blob1, blob2, blob3]);
 
   const featuresData = [
     {
@@ -115,135 +76,28 @@ export default function LandingScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Clean Warm Background Gradient */}
       <LinearGradient
-        colors={["#FBFBFF", "#F8F2FB"]}
+        colors={[colors.bgTop, colors.bgBottom]}
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
-
-      <View
-        pointerEvents="none"
-        style={[
-          StyleSheet.absoluteFill,
-          { backgroundColor: "rgba(220,230,255,0.05)", zIndex: 0 },
-        ]}
-      />
-
-      {/* BLOBS LAYER */}
-      <View pointerEvents="none" style={styles.blobsWrapper}>
-        {/* Blob duplicates & main blobs */}
-        <Animated.View
-          style={[
-            styles.blobBase,
-            styles.blobBlurDuplicate,
-            {
-              backgroundColor: "#D8E6FF",
-              left: 40,
-              top: 80,
-              width: 420,
-              height: 420,
-              borderRadius: 210,
-              transform: [{ translateX: blob1.x }, { translateY: blob1.y }],
-              opacity: 0.45,
-            },
-          ]}
-        />
-        <Animated.View
-          style={[
-            styles.blobBase,
-            {
-              backgroundColor: "#DCE6FF",
-              left: 60,
-              top: 100,
-              width: 360,
-              height: 360,
-              borderRadius: 180,
-              transform: [{ translateX: blob1.x }, { translateY: blob1.y }],
-              opacity: 0.85,
-            },
-          ]}
-        />
-
-        <Animated.View
-          style={[
-            styles.blobBase,
-            styles.blobBlurDuplicate,
-            {
-              backgroundColor: "#e8d4ffff",
-              right: 40,
-              top: 160,
-              width: 420,
-              height: 420,
-              borderRadius: 210,
-              transform: [{ translateX: blob2.x }, { translateY: blob2.y }],
-              opacity: 0.42,
-            },
-          ]}
-        />
-        <Animated.View
-          style={[
-            styles.blobBase,
-            {
-              backgroundColor: "#ffe6e6ff",
-              right: 60,
-              top: 180,
-              width: 360,
-              height: 360,
-              borderRadius: 180,
-              transform: [{ translateX: blob2.x }, { translateY: blob2.y }],
-              opacity: 0.78,
-            },
-          ]}
-        />
-
-        <Animated.View
-          style={[
-            styles.blobBase,
-            styles.blobBlurDuplicate,
-            {
-              backgroundColor: "#EEF0FF",
-              left: "30%",
-              bottom: -40,
-              width: 420,
-              height: 420,
-              borderRadius: 210,
-              transform: [{ translateX: blob3.x }, { translateY: blob3.y }],
-              opacity: 0.4,
-            },
-          ]}
-        />
-        <Animated.View
-          style={[
-            styles.blobBase,
-            {
-              backgroundColor: "#EDEFFF",
-              left: "35%",
-              bottom: -30,
-              width: 360,
-              height: 360,
-              borderRadius: 180,
-              transform: [{ translateX: blob3.x }, { translateY: blob3.y }],
-              opacity: 0.7,
-            },
-          ]}
-        />
-      </View>
 
       {/* CONTENT (above blobs) */}
       <ScrollView
         style={{ flex: 1, zIndex: 1 }}
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
-        scrollEnabled={true}
+        scrollEnabled={false}
       >
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.logoRow}>
             <LinearGradient
-              colors={["#a3a5ffff", "#b268f7ff"]}
+              colors={[colors.brand, colors.brandLight]}
               style={styles.logoIcon}
             >
-              <Sparkles size={20} color="#fcff59ff" />
+              <Sparkles size={20} color={colors.textOnDark} />
             </LinearGradient>
             <Text style={styles.logoText}>OutfitFlow</Text>
           </View>
@@ -285,7 +139,7 @@ export default function LandingScreen() {
                     const Icon = f.Icon;
                     return (
                       <>
-                        <Icon size={36} color="#8a8cffff" />
+                        <Icon size={36} color={colors.glassLight} />
                         <Text style={styles.featureTitle}>{f.title}</Text>
                         <Text style={styles.featureDescription}>
                           {f.description}
@@ -309,13 +163,13 @@ export default function LandingScreen() {
                 <View
                   key={i}
                   style={{
-                    width: i === cardIndex ? 20 : 8, // 활성일 때 더 길게
+                    width: i === cardIndex ? 20 : 8,
                     height: 8,
                     borderRadius: 8,
                     backgroundColor:
-                      i === cardIndex ? "#6366F1" : "rgba(99,102,241,0.18)", // 비활성 투명도 낮춤
-                    opacity: i === cardIndex ? 1 : 0.9, // 약간 투명 추가
-                    transform: [{ scale: i === cardIndex ? 1 : 0.95 }], // 미세한 크기 차
+                      i === cardIndex ? colors.brandLight : `${colors.brand}30`,
+                    opacity: i === cardIndex ? 1 : 0.9,
+                    transform: [{ scale: i === cardIndex ? 1 : 0.95 }],
                   }}
                 />
               ))}
@@ -325,13 +179,17 @@ export default function LandingScreen() {
           {/* CTA */}
           <Pressable onPress={() => navigation.navigate("Signup")}>
             <LinearGradient
-              colors={["#a3a5ffff", "#b268f7ff"]}
+              colors={[colors.brand, colors.brandLight]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.cta}
             >
               <Text style={styles.ctaText}>시작하기</Text>
-              <ArrowRight size={18} color="#fff" style={{ marginLeft: 8 }} />
+              <ArrowRight
+                size={18}
+                color={colors.textOnDark}
+                style={{ marginLeft: 8 }}
+              />
             </LinearGradient>
           </Pressable>
         </View>
@@ -349,31 +207,8 @@ export default function LandingScreen() {
 
 /* ---------- styles ---------- */
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#FBFBFF" },
+  container: { flex: 1, backgroundColor: colors.bgTop },
   scroll: { paddingBottom: 20 },
-
-  // blobs wrapper
-  blobsWrapper: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    overflow: "hidden",
-    zIndex: 0,
-  },
-  blobBase: { position: "absolute", zIndex: 0 },
-  blobBlurDuplicate: {
-    ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.2,
-        shadowRadius: 40,
-      },
-      android: { elevation: 0.5 },
-    }),
-  },
 
   header: {
     zIndex: 10,
@@ -396,16 +231,16 @@ const styles = StyleSheet.create({
     marginLeft: 12,
     fontSize: 25,
     fontWeight: "600",
-    color: "#0f172a",
+    color: colors.textOnDark,
   },
 
   loginButton: {
     paddingHorizontal: 20,
     paddingVertical: 8,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: colors.brandLight,
     borderRadius: 8,
   },
-  loginText: { color: "#374151", fontSize: 16, fontWeight: "500" },
+  loginText: { color: colors.textOnLight, fontSize: 16, fontWeight: "500" },
 
   heroWrap: {
     zIndex: 10,
@@ -416,11 +251,11 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     fontWeight: "400",
-    color: "#0f172a",
+    color: colors.textOnDark,
     marginBottom: 8,
     letterSpacing: -1,
   },
-  heroSubtitle: { color: "#6B7280", marginBottom: 28 },
+  heroSubtitle: { color: colors.textOnDark, marginBottom: 28, opacity: 0.9 },
 
   cardsContainer: {
     width: "100%",
@@ -437,8 +272,8 @@ const styles = StyleSheet.create({
   },
 
   featureCard: {
-    backgroundColor: "rgba(255,255,255,0.95)",
-    borderRadius: 16,
+    backgroundColor: colors.brandLight,
+    borderRadius: 20,
     alignItems: "center",
     marginBottom: 1,
     paddingVertical: 50,
@@ -448,10 +283,10 @@ const styles = StyleSheet.create({
     minHeight: 220,
     ...Platform.select({
       ios: {
-        shadowColor: "#d0b7ffff",
+        shadowColor: colors.brand,
         shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.6,
-        shadowRadius: 14,
+        shadowOpacity: 0.3,
+        shadowRadius: 16,
       },
       android: { elevation: 6 },
     }),
@@ -459,7 +294,7 @@ const styles = StyleSheet.create({
   featureTitle: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#0f172a",
+    color: colors.textOnLight,
     marginTop: 12,
     marginBottom: 8,
     textAlign: "center",
@@ -467,7 +302,7 @@ const styles = StyleSheet.create({
   },
   featureDescription: {
     fontSize: 16,
-    color: "#6B7280",
+    color: colors.textOnDark,
     textAlign: "center",
     lineHeight: 30,
     alignItems: "center",
@@ -484,60 +319,15 @@ const styles = StyleSheet.create({
     zIndex: 10,
     ...Platform.select({
       ios: {
-        shadowColor: "#6366F1",
+        shadowColor: colors.brand,
         shadowOffset: { width: 0, height: 12 },
-        shadowOpacity: 0.16,
-        shadowRadius: 28,
+        shadowOpacity: 0.4,
+        shadowRadius: 20,
       },
       android: { elevation: 8 },
     }),
   },
-  ctaText: { color: "#fff", fontWeight: "800", fontSize: 16 },
-
-  advantages: {
-    paddingHorizontal: 24,
-    paddingTop: 48,
-    zIndex: 10,
-    alignItems: "center",
-    width: "100%",
-  },
-  advHeading: {
-    textAlign: "center",
-    fontSize: 32,
-    fontWeight: "400",
-    marginBottom: 12,
-    color: "#0f172a",
-  },
-  advantageCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.95)",
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 12,
-    gap: 12,
-    zIndex: 10,
-    maxWidth: 900,
-    maxHeight: 120,
-    minHeight: 100,
-    ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 3 },
-    }),
-  },
-  advantageEmoji: { fontSize: 30, marginRight: 12 },
-  advantageContent: { flex: 1 },
-  advantageTitle: {
-    fontSize: 18,
-    marginBottom: 6,
-    color: "#0f172a",
-  },
-  advantageDescription: { color: "#6B7280", fontSize: 16, lineHeight: 20 },
+  ctaText: { color: colors.textOnDark, fontWeight: "800", fontSize: 16 },
 
   footer: {
     alignItems: "center",
@@ -545,6 +335,6 @@ const styles = StyleSheet.create({
     paddingBottom: 48,
     width: "100%",
   },
-  footerText: { fontSize: 16, color: "#9CA3AF" },
-  footerLink: { color: "#6366F1", marginTop: 6, fontWeight: "600" },
+  footerText: { fontSize: 16, color: colors.textOnDark, opacity: 0.8 },
+  footerLink: { color: colors.textOnDark, marginTop: 6, fontWeight: "700" },
 });

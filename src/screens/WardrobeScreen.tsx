@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { uploadImageToCloudinary } from "../services/cloudinaryService";
@@ -28,9 +29,12 @@ import {
 } from "../services/wardrobeService";
 import { ClothingItem } from "../types/wardrobe";
 import { useAuth } from "../contexts/AuthContext";
+import { colors } from "../theme/colors";
 
 const CATEGORIES = ["전체", "상의", "하의", "아우터", "신발", "악세사리"];
 const SEASONS = ["봄", "여름", "가을", "겨울"];
+const CATEGORY_ALL = CATEGORIES[0];
+const SEASON_FILTER_ALL = "전체";
 
 // Alert 래퍼 함수들
 const showAlert = (title: string, message?: string) => {
@@ -51,10 +55,11 @@ const showConfirm = (
 
 export default function WardrobeScreen() {
   const { user } = useAuth();
-  const [selectedCategory, setSelectedCategory] = useState("전체");
+  const [selectedCategory, setSelectedCategory] = useState(CATEGORY_ALL);
   const [searchQuery, setSearchQuery] = useState("");
   const [clothes, setClothes] = useState<ClothingItem[]>([]);
-  const [selectedSeasonFilter, setSelectedSeasonFilter] = useState("전체");
+  const [selectedSeasonFilter, setSelectedSeasonFilter] =
+    useState(SEASON_FILTER_ALL);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   // 로딩 상태
@@ -74,6 +79,11 @@ export default function WardrobeScreen() {
   const [showSeasonDropdown, setShowSeasonDropdown] = useState(false);
   const [showSeasonFilterDropdown, setShowSeasonFilterDropdown] =
     useState(false);
+  const isSeasonFilterActive =
+    showSeasonFilterDropdown || selectedSeasonFilter !== SEASON_FILTER_ALL;
+  const filterIconColor = isSeasonFilterActive
+    ? colors.white
+    : colors.textSecondary;
 
   // 폼 데이터
   const [itemName, setItemName] = useState("");
@@ -332,539 +342,599 @@ export default function WardrobeScreen() {
   // 필터링된 옷 목록
   const filteredClothes = clothes.filter((item) => {
     const matchCategory =
-      selectedCategory === "전체" || item.category === selectedCategory;
+      selectedCategory === CATEGORY_ALL || item.category === selectedCategory;
     const matchSearch =
       searchQuery === "" ||
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.brand.toLowerCase().includes(searchQuery.toLowerCase());
     const matchSeason =
-      selectedSeasonFilter === "전체" ||
+      selectedSeasonFilter === SEASON_FILTER_ALL ||
       (item as any).seasons?.includes(selectedSeasonFilter);
     return matchCategory && matchSearch && matchSeason;
   });
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <View style={styles.container}>
-        {/* 헤더 */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.title}>내 옷장</Text>
-            <Text style={styles.subtitle}>총 {clothes.length}개의 아이템</Text>
+    <SafeAreaView style={styles.container} edges={["top"]}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={styles.innerContainer}>
+          {/* 헤더 */}
+          <View style={styles.header}>
+            <View>
+              <Text style={styles.title}>내 옷장</Text>
+              <Text style={styles.subtitle}>
+                총 {clothes.length}개의 아이템
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => setIsModalVisible(true)}
+            >
+              <Ionicons name="add" size={20} color={colors.white} />
+              <Text style={styles.addButtonText}>아이템 추가</Text>
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => setIsModalVisible(true)}
-          >
-            <Ionicons name="add" size={20} color="#fff" />
-            <Text style={styles.addButtonText}>아이템 추가</Text>
-          </TouchableOpacity>
-        </View>
 
-        {/* 검색창 */}
-        <View
-          style={[
-            styles.searchContainer,
-            isSearchFocused && styles.searchContainerFocused,
-          ]}
-        >
-          <Ionicons
-            name="search"
-            size={20}
-            color="#999"
-            style={styles.searchIcon}
-          />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="아이템 검색..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            onFocus={() => setIsSearchFocused(true)}
-            onBlur={() => setIsSearchFocused(false)}
-          />
-        </View>
-
-        {/* 카테고리 및 필터 섹션 */}
-        <View style={styles.filterSectionContainer}>
-          {/* 카테고리 탭 */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.categoryContainer}
+          {/* 검색창 */}
+          <View
+            style={[
+              styles.searchContainer,
+              isSearchFocused && styles.searchContainerFocused,
+            ]}
           >
-            {CATEGORIES.map((category) => (
+            <Ionicons
+              name="search"
+              size={20}
+              color={colors.textTertiary}
+              style={styles.searchIcon}
+            />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="아이템 검색..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setIsSearchFocused(false)}
+            />
+          </View>
+
+          {/* 카테고리 및 필터 섹션 */}
+          <View style={styles.filterSectionContainer}>
+            {/* 카테고리 탭 */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.categoryContainer}
+            >
+              {CATEGORIES.map((category) => (
+                <TouchableOpacity
+                  key={category}
+                  style={[
+                    styles.categoryTab,
+                    selectedCategory === category && styles.categoryTabActive,
+                  ]}
+                  onPress={() => setSelectedCategory(category)}
+                >
+                  <Text
+                    style={[
+                      styles.categoryText,
+                      selectedCategory === category &&
+                        styles.categoryTextActive,
+                    ]}
+                  >
+                    {category}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            {/* 계절 필터 드롭다운 */}
+            <View style={styles.filterContainer}>
               <TouchableOpacity
-                key={category}
                 style={[
-                  styles.categoryTab,
-                  selectedCategory === category && styles.categoryTabActive,
+                  styles.filterButton,
+                  isSeasonFilterActive && styles.filterButtonActive,
                 ]}
-                onPress={() => setSelectedCategory(category)}
+                onPress={() =>
+                  setShowSeasonFilterDropdown(!showSeasonFilterDropdown)
+                }
+                activeOpacity={0.8}
               >
+                <Ionicons name="filter" size={16} color={filterIconColor} />
                 <Text
                   style={[
-                    styles.categoryText,
-                    selectedCategory === category && styles.categoryTextActive,
+                    styles.filterText,
+                    isSeasonFilterActive && styles.filterTextActive,
                   ]}
                 >
-                  {category}
+                  {selectedSeasonFilter}
                 </Text>
+                <Ionicons
+                  name={
+                    showSeasonFilterDropdown ? "chevron-up" : "chevron-down"
+                  }
+                  size={16}
+                  color={filterIconColor}
+                />
               </TouchableOpacity>
-            ))}
-          </ScrollView>
-
-          {/* 계절 필터 드롭다운 */}
-          <View style={styles.filterContainer}>
-            <TouchableOpacity
-              style={styles.filterButton}
-              onPress={() =>
-                setShowSeasonFilterDropdown(!showSeasonFilterDropdown)
-              }
-            >
-              <Ionicons name="filter" size={16} color="#666" />
-              <Text style={styles.filterText}>{selectedSeasonFilter}</Text>
-              <Ionicons
-                name={showSeasonFilterDropdown ? "chevron-up" : "chevron-down"}
-                size={16}
-                color="#666"
-              />
-            </TouchableOpacity>
-            {showSeasonFilterDropdown && (
-              <View style={styles.seasonFilterDropdown}>
-                <Pressable
-                  style={({ hovered }: any) => [
-                    styles.seasonFilterItem,
-                    hovered && styles.seasonFilterItemHovered,
-                  ]}
-                  onPress={() => {
-                    setSelectedSeasonFilter("전체");
-                    setShowSeasonFilterDropdown(false);
-                  }}
-                >
-                  <Text style={styles.seasonFilterText}>전체</Text>
-                  {selectedSeasonFilter === "전체" && (
-                    <Ionicons name="checkmark" size={20} color="#000" />
-                  )}
-                </Pressable>
-                {SEASONS.map((season) => (
-                  <Pressable
-                    key={season}
-                    style={({ hovered }: any) => [
-                      styles.seasonFilterItem,
-                      hovered && styles.seasonFilterItemHovered,
-                    ]}
-                    onPress={() => {
-                      setSelectedSeasonFilter(season);
-                      setShowSeasonFilterDropdown(false);
-                    }}
-                  >
-                    <Text style={styles.seasonFilterText}>{season}</Text>
-                    {selectedSeasonFilter === season && (
-                      <Ionicons name="checkmark" size={20} color="#000" />
-                    )}
-                  </Pressable>
-                ))}
-              </View>
-            )}
-          </View>
-        </View>
-
-        {/* 옷 그리드 */}
-        <ScrollView
-          style={styles.scrollView}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={["#000"]} // Android
-              tintColor="#000" // iOS
-            />
-          }
-        >
-          {isLoading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#000" />
-              <Text style={styles.loadingText}>옷 목록을 불러오는 중...</Text>
-            </View>
-          ) : (
-            <>
-              <View style={styles.grid}>
-                {filteredClothes.map((item) => (
-                  <TouchableOpacity
-                    key={item.id}
-                    style={styles.clothingCard}
-                    onPress={() => handleItemClick(item)}
-                  >
-                    <Image
-                      source={{ uri: item.imageUrl }}
-                      style={styles.clothingImage}
-                    />
-                    <View style={styles.clothingInfo}>
-                      <Text style={styles.clothingName}>{item.name}</Text>
-                      <Text style={styles.clothingColor}>{item.color}</Text>
-                      <Text style={styles.clothingBrand}>{item.brand}</Text>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              {/* 빈 상태 */}
-              {filteredClothes.length === 0 && !isLoading && (
-                <View style={styles.emptyState}>
-                  <Ionicons name="shirt-outline" size={64} color="#ccc" />
-                  <Text style={styles.emptyText}>아이템이 없습니다</Text>
-                  <Text style={styles.emptySubtext}>
-                    새로운 옷을 추가해보세요
-                  </Text>
+              {showSeasonFilterDropdown && (
+                <View style={styles.seasonFilterDropdown}>
+                  {[SEASON_FILTER_ALL, ...SEASONS].map((season) => {
+                    const isSelected = selectedSeasonFilter === season;
+                    return (
+                      <Pressable
+                        key={season}
+                        style={({ hovered, pressed }: any) => [
+                          styles.seasonFilterItem,
+                          hovered && styles.seasonFilterItemHovered,
+                          pressed && styles.seasonFilterItemPressed,
+                          isSelected && styles.seasonFilterItemSelected,
+                        ]}
+                        onPress={() => {
+                          setSelectedSeasonFilter(season);
+                          setShowSeasonFilterDropdown(false);
+                        }}
+                      >
+                        <Text
+                          style={[
+                            styles.seasonFilterText,
+                            isSelected && styles.seasonFilterTextActive,
+                          ]}
+                        >
+                          {season}
+                        </Text>
+                        {isSelected && (
+                          <Ionicons
+                            name="checkmark"
+                            size={20}
+                            color={colors.white}
+                          />
+                        )}
+                      </Pressable>
+                    );
+                  })}
                 </View>
               )}
-            </>
-          )}
-        </ScrollView>
+            </View>
+          </View>
 
-        {/* 아이템 추가 모달 */}
-        <Modal
-          visible={isModalVisible}
-          animationType="slide"
-          presentationStyle="formSheet"
-          transparent={false}
-          onRequestClose={closeModal}
-        >
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            style={{ flex: 2 }}
+          {/* 옷 그리드 */}
+          <ScrollView
+            style={styles.scrollView}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={[colors.brand]} // Android
+                tintColor={colors.brand} // iOS
+              />
+            }
           >
-            <View style={styles.mobileModalContainer}>
-              <View style={styles.modalContainer}>
-                {/* 모달 헤더 */}
-                <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>새 아이템 추가</Text>
-                  <TouchableOpacity onPress={closeModal}>
-                    <Ionicons name="close" size={28} color="#000" />
-                  </TouchableOpacity>
+            {isLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={colors.brand} />
+                <Text style={styles.loadingText}>옷 목록을 불러오는 중...</Text>
+              </View>
+            ) : (
+              <>
+                <View style={styles.grid}>
+                  {filteredClothes.map((item) => (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={styles.clothingCard}
+                      onPress={() => handleItemClick(item)}
+                    >
+                      <Image
+                        source={{ uri: item.imageUrl }}
+                        style={styles.clothingImage}
+                      />
+                      <View style={styles.clothingInfo}>
+                        <Text style={styles.clothingName}>{item.name}</Text>
+                        <Text style={styles.clothingColor}>{item.color}</Text>
+                        <Text style={styles.clothingBrand}>{item.brand}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
                 </View>
 
-                <ScrollView
-                  style={styles.modalContent}
-                  keyboardShouldPersistTaps="handled"
-                >
-                  {/* 이미지 업로드 영역 */}
-                  <View style={styles.imageUploadSection}>
-                    {/* 이미지 프리뷰 */}
-                    {selectedImage ? (
-                      <View style={styles.imagePreviewContainer}>
-                        <Image
-                          source={{ uri: selectedImage }}
-                          style={styles.imagePreview}
-                        />
+                {/* 빈 상태 */}
+                {filteredClothes.length === 0 && !isLoading && (
+                  <View style={styles.emptyState}>
+                    <Ionicons
+                      name="shirt-outline"
+                      size={64}
+                      color={colors.textTertiary}
+                    />
+                    <Text style={styles.emptyText}>아이템이 없습니다</Text>
+                    <Text style={styles.emptySubtext}>
+                      새로운 옷을 추가해보세요
+                    </Text>
+                  </View>
+                )}
+              </>
+            )}
+          </ScrollView>
+
+          {/* 아이템 추가 모달 */}
+          <Modal
+            visible={isModalVisible}
+            animationType="slide"
+            presentationStyle="formSheet"
+            transparent={false}
+            onRequestClose={closeModal}
+          >
+            <KeyboardAvoidingView
+              behavior={Platform.OS === "ios" ? "padding" : "height"}
+              style={{ flex: 2 }}
+            >
+              <View style={styles.mobileModalContainer}>
+                <View style={styles.modalContainer}>
+                  {/* 모달 헤더 */}
+                  <View style={styles.modalHeader}>
+                    <Text style={styles.modalTitle}>새 아이템 추가</Text>
+                    <TouchableOpacity onPress={closeModal}>
+                      <Ionicons
+                        name="close"
+                        size={28}
+                        color={colors.textOnLight}
+                      />
+                    </TouchableOpacity>
+                  </View>
+
+                  <ScrollView
+                    style={styles.modalContent}
+                    keyboardShouldPersistTaps="handled"
+                  >
+                    {/* 이미지 업로드 영역 */}
+                    <View style={styles.imageUploadSection}>
+                      {/* 이미지 프리뷰 */}
+                      {selectedImage ? (
+                        <View style={styles.imagePreviewContainer}>
+                          <Image
+                            source={{ uri: selectedImage }}
+                            style={styles.imagePreview}
+                          />
+                          <TouchableOpacity
+                            style={styles.imageRemoveButton}
+                            onPress={() => setSelectedImage(null)}
+                          >
+                            <Ionicons
+                              name="close-circle"
+                              size={28}
+                              color="#ff4444"
+                            />
+                          </TouchableOpacity>
+                        </View>
+                      ) : (
                         <TouchableOpacity
-                          style={styles.imageRemoveButton}
-                          onPress={() => setSelectedImage(null)}
+                          style={styles.imagePlaceholder}
+                          onPress={pickImage}
                         >
                           <Ionicons
-                            name="close-circle"
-                            size={28}
-                            color="#ff4444"
+                            name="cloud-upload-outline"
+                            size={48}
+                            color={colors.textTertiary}
                           />
+                          <Text style={styles.imagePlaceholderText}>
+                            클릭하여 파일을 선택하거나
+                          </Text>
+                          <Text style={styles.imagePlaceholderText}>
+                            드래그 앤 드롭하세요
+                          </Text>
                         </TouchableOpacity>
-                      </View>
-                    ) : (
+                      )}
+
+                      {/* 카메라 버튼 */}
                       <TouchableOpacity
-                        style={styles.imagePlaceholder}
-                        onPress={pickImage}
+                        style={styles.cameraButton}
+                        onPress={takePhoto}
                       >
                         <Ionicons
-                          name="cloud-upload-outline"
-                          size={48}
-                          color="#ccc"
+                          name="camera-outline"
+                          size={20}
+                          color={colors.textSecondary}
                         />
-                        <Text style={styles.imagePlaceholderText}>
-                          클릭하여 파일을 선택하거나
-                        </Text>
-                        <Text style={styles.imagePlaceholderText}>
-                          드래그 앤 드롭하세요
+                        <Text style={styles.imageUploadButtonText}>
+                          사진 촬영
                         </Text>
                       </TouchableOpacity>
-                    )}
+                    </View>
 
-                    {/* 카메라 버튼 */}
-                    <TouchableOpacity
-                      style={styles.cameraButton}
-                      onPress={takePhoto}
-                    >
-                      <Ionicons
-                        name="camera-outline"
-                        size={20}
-                        color="#666"
+                    {/* 아이템 이름 */}
+                    <View style={styles.formGroup}>
+                      <Text style={styles.formLabel}>아이템 이름</Text>
+                      <TextInput
+                        style={styles.formInput}
+                        placeholder="아이템 이름을 입력하세요"
+                        placeholderTextColor={colors.textTertiary}
+                        value={itemName}
+                        onChangeText={setItemName}
                       />
-                      <Text style={styles.imageUploadButtonText}>
-                        사진 촬영
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
+                    </View>
 
-                  {/* 아이템 이름 */}
-                  <View style={styles.formGroup}>
-                    <Text style={styles.formLabel}>아이템 이름</Text>
-                    <TextInput
-                      style={styles.formInput}
-                      placeholder="아이템 이름을 입력하세요"
-                      placeholderTextColor="#bbb"
-                      value={itemName}
-                      onChangeText={setItemName}
-                    />
-                  </View>
-
-                  {/* 카테고리 */}
-                  <View style={styles.formGroup}>
-                    <Text style={styles.formLabel}>카테고리</Text>
-                    <TouchableOpacity
-                      style={styles.dropdownButton}
-                      onPress={() =>
-                        setShowCategoryDropdown(!showCategoryDropdown)
-                      }
-                    >
-                      <Text style={styles.dropdownButtonText}>
-                        {itemCategory || "카테고리 선택"}
-                      </Text>
-                      <Ionicons
-                        name={
-                          showCategoryDropdown ? "chevron-up" : "chevron-down"
+                    {/* 카테고리 */}
+                    <View style={styles.formGroup}>
+                      <Text style={styles.formLabel}>카테고리</Text>
+                      <TouchableOpacity
+                        style={styles.dropdownButton}
+                        onPress={() =>
+                          setShowCategoryDropdown(!showCategoryDropdown)
                         }
-                        size={20}
-                        color="#666"
-                      />
-                    </TouchableOpacity>
-                    {showCategoryDropdown && (
-                      <View style={styles.dropdownList}>
-                        {CATEGORIES.filter((cat) => cat !== "전체").map(
-                          (category) => (
-                            <TouchableOpacity
-                              key={category}
-                              style={styles.dropdownItem}
-                              onPress={() => {
-                                setItemCategory(category);
-                                setShowCategoryDropdown(false);
-                              }}
-                            >
-                              <Text style={styles.dropdownItemText}>
-                                {category}
-                              </Text>
-                              {itemCategory === category && (
-                                <Ionicons
-                                  name="checkmark"
-                                  size={20}
-                                  color="#000"
-                                />
-                              )}
-                            </TouchableOpacity>
-                          )
-                        )}
-                      </View>
-                    )}
-                  </View>
+                      >
+                        <Text style={styles.dropdownButtonText}>
+                          {itemCategory || "카테고리 선택"}
+                        </Text>
+                        <Ionicons
+                          name={
+                            showCategoryDropdown ? "chevron-up" : "chevron-down"
+                          }
+                          size={20}
+                          color={colors.textSecondary}
+                        />
+                      </TouchableOpacity>
+                      {showCategoryDropdown && (
+                        <View style={styles.dropdownList}>
+                          {CATEGORIES.filter((cat) => cat !== CATEGORY_ALL).map(
+                            (category) => {
+                              const isSelected = itemCategory === category;
+                              return (
+                                <Pressable
+                                  key={category}
+                                  style={({ hovered, pressed }: any) => [
+                                    styles.dropdownItem,
+                                    hovered && styles.dropdownItemHovered,
+                                    pressed && styles.dropdownItemPressed,
+                                    isSelected && styles.dropdownItemSelected,
+                                  ]}
+                                  onPress={() => {
+                                    setItemCategory(category);
+                                    setShowCategoryDropdown(false);
+                                  }}
+                                >
+                                  <Text
+                                    style={[
+                                      styles.dropdownItemText,
+                                      isSelected &&
+                                        styles.dropdownItemTextSelected,
+                                    ]}
+                                  >
+                                    {category}
+                                  </Text>
+                                  {isSelected && (
+                                    <Ionicons
+                                      name="checkmark"
+                                      size={20}
+                                      color={colors.white}
+                                    />
+                                  )}
+                                </Pressable>
+                              );
+                            }
+                          )}
+                        </View>
+                      )}
+                    </View>
 
-                  {/* 계절 (복수 선택) */}
-                  <View style={styles.formGroup}>
-                    <Text style={styles.formLabel}>계절</Text>
-                    <TouchableOpacity
-                      style={styles.dropdownButton}
-                      onPress={() => setShowSeasonDropdown(!showSeasonDropdown)}
-                    >
-                      <Text style={styles.dropdownButtonText}>
-                        {itemSeasons.length > 0
-                          ? itemSeasons.join(", ")
-                          : "계절 선택 (중복 선택 가능)"}
-                      </Text>
-                      <Ionicons
-                        name={
-                          showSeasonDropdown ? "chevron-up" : "chevron-down"
+                    {/* 계절 (복수 선택) */}
+                    <View style={styles.formGroup}>
+                      <Text style={styles.formLabel}>계절</Text>
+                      <TouchableOpacity
+                        style={styles.dropdownButton}
+                        onPress={() =>
+                          setShowSeasonDropdown(!showSeasonDropdown)
                         }
-                        size={20}
-                        color="#666"
+                      >
+                        <Text style={styles.dropdownButtonText}>
+                          {itemSeasons.length > 0
+                            ? itemSeasons.join(", ")
+                            : "계절 선택 (중복 선택 가능)"}
+                        </Text>
+                        <Ionicons
+                          name={
+                            showSeasonDropdown ? "chevron-up" : "chevron-down"
+                          }
+                          size={20}
+                          color={colors.textSecondary}
+                        />
+                      </TouchableOpacity>
+                      {showSeasonDropdown && (
+                        <View style={styles.dropdownList}>
+                          {SEASONS.map((season) => {
+                            const isSelected = itemSeasons.includes(season);
+                            return (
+                              <Pressable
+                                key={season}
+                                style={({ hovered, pressed }: any) => [
+                                  styles.dropdownItem,
+                                  hovered && styles.dropdownItemHovered,
+                                  pressed && styles.dropdownItemPressed,
+                                  isSelected && styles.dropdownItemSelected,
+                                ]}
+                                onPress={() => toggleSeason(season)}
+                              >
+                                <Text
+                                  style={[
+                                    styles.dropdownItemText,
+                                    isSelected &&
+                                      styles.dropdownItemTextSelected,
+                                  ]}
+                                >
+                                  {season}
+                                </Text>
+                                {isSelected && (
+                                  <Ionicons
+                                    name="checkmark"
+                                    size={20}
+                                    color={colors.white}
+                                  />
+                                )}
+                              </Pressable>
+                            );
+                          })}
+                        </View>
+                      )}
+                    </View>
+
+                    {/* 색상 */}
+                    <View style={styles.formGroup}>
+                      <Text style={styles.formLabel}>색상</Text>
+                      <TextInput
+                        style={styles.formInput}
+                        placeholder="색상을 입력하세요"
+                        placeholderTextColor={colors.textTertiary}
+                        value={itemColor}
+                        onChangeText={setItemColor}
                       />
-                    </TouchableOpacity>
-                    {showSeasonDropdown && (
-                      <View style={styles.dropdownList}>
-                        {SEASONS.map((season) => (
-                          <Pressable
-                            key={season}
-                            style={({ hovered }: any) => [
-                              styles.dropdownItem,
-                              itemSeasons.includes(season) &&
-                                styles.dropdownItemSelected,
-                              hovered && styles.dropdownItemHovered,
-                            ]}
-                            onPress={() => toggleSeason(season)}
-                          >
-                            <Text style={styles.dropdownItemText}>
-                              {season}
-                            </Text>
-                            {itemSeasons.includes(season) && (
-                              <Ionicons
-                                name="checkmark"
-                                size={20}
-                                color="#000"
-                              />
-                            )}
-                          </Pressable>
-                        ))}
-                      </View>
-                    )}
-                  </View>
+                    </View>
 
-                  {/* 색상 */}
-                  <View style={styles.formGroup}>
-                    <Text style={styles.formLabel}>색상</Text>
-                    <TextInput
-                      style={styles.formInput}
-                      placeholder="색상을 입력하세요"
-                      placeholderTextColor="#bbb"
-                      value={itemColor}
-                      onChangeText={setItemColor}
-                    />
-                  </View>
-
-                  {/* 브랜드 (선택) */}
-                  <View style={styles.formGroup}>
-                    <Text style={styles.formLabel}>
-                      브랜드 <Text style={styles.optionalText}>(선택)</Text>
-                    </Text>
-                    <TextInput
-                      style={styles.formInput}
-                      placeholder="브랜드를 입력하세요"
-                      placeholderTextColor="#bbb"
-                      value={itemBrand}
-                      onChangeText={setItemBrand}
-                    />
-                  </View>
-                </ScrollView>
-
-                {/* 추가/수정 버튼 */}
-                <View style={styles.modalFooter}>
-                  <TouchableOpacity
-                    style={[
-                      styles.submitButton,
-                      isUploading && styles.submitButtonDisabled,
-                    ]}
-                    onPress={handleAddItem}
-                    disabled={isUploading}
-                  >
-                    {isUploading ? (
-                      <View style={styles.uploadingContainer}>
-                        <ActivityIndicator size="small" color="#fff" />
-                        <Text style={styles.submitButtonText}>
-                          {isEditMode ? "수정 중..." : "추가 중..."}
-                        </Text>
-                      </View>
-                    ) : (
-                      <Text style={styles.submitButtonText}>
-                        {isEditMode ? "아이템 수정" : "아이템 추가"}
+                    {/* 브랜드 (선택) */}
+                    <View style={styles.formGroup}>
+                      <Text style={styles.formLabel}>
+                        브랜드 <Text style={styles.optionalText}>(선택)</Text>
                       </Text>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </KeyboardAvoidingView>
-        </Modal>
-
-        {/* 아이템 상세 모달 */}
-        <Modal
-          visible={isDetailModalVisible}
-          animationType="fade"
-          transparent={true}
-          onRequestClose={closeDetailModal}
-        >
-          <View style={styles.detailModalOverlay}>
-            <View style={styles.detailModalContent}>
-              {selectedItem && (
-                <>
-                  {/* 상세 헤더 */}
-                  <View style={styles.detailHeader}>
-                    <Text style={styles.detailTitle}>아이템 상세</Text>
-                    <TouchableOpacity onPress={closeDetailModal}>
-                      <Ionicons name="close" size={28} color="#000" />
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* 스크롤 가능한 컨텐츠 */}
-                  <ScrollView
-                    style={styles.detailScrollView}
-                    showsVerticalScrollIndicator={true}
-                  >
-                    {/* 이미지 */}
-                    <Image
-                      source={{ uri: selectedItem.imageUrl }}
-                      style={styles.detailImage}
-                    />
-
-                    {/* 정보 */}
-                    <View style={styles.detailInfo}>
-                      <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>이름</Text>
-                        <Text style={styles.detailValue}>
-                          {selectedItem.name}
-                        </Text>
-                      </View>
-                      <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>카테고리</Text>
-                        <Text style={styles.detailValue}>
-                          {selectedItem.category}
-                        </Text>
-                      </View>
-                      <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>계절</Text>
-                        <Text style={styles.detailValue}>
-                          {selectedItem.seasons || "-"}
-                        </Text>
-                      </View>
-                      <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>색상</Text>
-                        <Text style={styles.detailValue}>
-                          {selectedItem.color || "-"}
-                        </Text>
-                      </View>
-                      <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>브랜드</Text>
-                        <Text style={styles.detailValue}>
-                          {selectedItem.brand || "-"}
-                        </Text>
-                      </View>
+                      <TextInput
+                        style={styles.formInput}
+                        placeholder="브랜드를 입력하세요"
+                        placeholderTextColor={colors.textTertiary}
+                        value={itemBrand}
+                        onChangeText={setItemBrand}
+                      />
                     </View>
                   </ScrollView>
 
-                  {/* 액션 버튼 */}
-                  <View style={styles.detailActions}>
+                  {/* 추가/수정 버튼 */}
+                  <View style={styles.modalFooter}>
                     <TouchableOpacity
-                      style={styles.editButton}
-                      onPress={handleEditItem}
+                      style={[
+                        styles.submitButton,
+                        isUploading && styles.submitButtonDisabled,
+                      ]}
+                      onPress={handleAddItem}
+                      disabled={isUploading}
                     >
-                      <Ionicons name="pencil" size={20} color="#fff" />
-                      <Text style={styles.editButtonText}>수정</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.deleteButton}
-                      onPress={handleDeleteItem}
-                    >
-                      <Ionicons name="trash" size={20} color="#fff" />
-                      <Text style={styles.deleteButtonText}>삭제</Text>
+                      {isUploading ? (
+                        <View style={styles.uploadingContainer}>
+                          <ActivityIndicator size="small" color="#fff" />
+                          <Text style={styles.submitButtonText}>
+                            {isEditMode ? "수정 중..." : "추가 중..."}
+                          </Text>
+                        </View>
+                      ) : (
+                        <Text style={styles.submitButtonText}>
+                          {isEditMode ? "아이템 수정" : "아이템 추가"}
+                        </Text>
+                      )}
                     </TouchableOpacity>
                   </View>
-                </>
-              )}
+                </View>
+              </View>
+            </KeyboardAvoidingView>
+          </Modal>
+
+          {/* 아이템 상세 모달 */}
+          <Modal
+            visible={isDetailModalVisible}
+            animationType="fade"
+            transparent={true}
+            onRequestClose={closeDetailModal}
+          >
+            <View style={styles.detailModalOverlay}>
+              <View style={styles.detailModalContent}>
+                {selectedItem && (
+                  <>
+                    {/* 상세 헤더 */}
+                    <View style={styles.detailHeader}>
+                      <Text style={styles.detailTitle}>아이템 상세</Text>
+                      <TouchableOpacity onPress={closeDetailModal}>
+                        <Ionicons
+                          name="close"
+                          size={28}
+                          color={colors.textOnLight}
+                        />
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* 스크롤 가능한 컨텐츠 */}
+                    <ScrollView
+                      style={styles.detailScrollView}
+                      showsVerticalScrollIndicator={true}
+                    >
+                      {/* 이미지 */}
+                      <Image
+                        source={{ uri: selectedItem.imageUrl }}
+                        style={styles.detailImage}
+                      />
+
+                      {/* 정보 */}
+                      <View style={styles.detailInfo}>
+                        <View style={styles.detailRow}>
+                          <Text style={styles.detailLabel}>이름</Text>
+                          <Text style={styles.detailValue}>
+                            {selectedItem.name}
+                          </Text>
+                        </View>
+                        <View style={styles.detailRow}>
+                          <Text style={styles.detailLabel}>카테고리</Text>
+                          <Text style={styles.detailValue}>
+                            {selectedItem.category}
+                          </Text>
+                        </View>
+                        <View style={styles.detailRow}>
+                          <Text style={styles.detailLabel}>계절</Text>
+                          <Text style={styles.detailValue}>
+                            {selectedItem.seasons || "-"}
+                          </Text>
+                        </View>
+                        <View style={styles.detailRow}>
+                          <Text style={styles.detailLabel}>색상</Text>
+                          <Text style={styles.detailValue}>
+                            {selectedItem.color || "-"}
+                          </Text>
+                        </View>
+                        <View style={styles.detailRow}>
+                          <Text style={styles.detailLabel}>브랜드</Text>
+                          <Text style={styles.detailValue}>
+                            {selectedItem.brand || "-"}
+                          </Text>
+                        </View>
+                      </View>
+                    </ScrollView>
+
+                    {/* 액션 버튼 */}
+                    <View style={styles.detailActions}>
+                      <TouchableOpacity
+                        style={styles.editButton}
+                        onPress={handleEditItem}
+                      >
+                        <Ionicons name="pencil" size={20} color="#fff" />
+                        <Text style={styles.editButtonText}>수정</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.deleteButton}
+                        onPress={handleDeleteItem}
+                      >
+                        <Ionicons name="trash" size={20} color="#fff" />
+                        <Text style={styles.deleteButtonText}>삭제</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                )}
+              </View>
             </View>
-          </View>
-        </Modal>
-      </View>
-    </TouchableWithoutFeedback>
+          </Modal>
+        </View>
+      </TouchableWithoutFeedback>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FAFAFA",
+    backgroundColor: colors.white,
+  },
+  innerContainer: {
+    flex: 1,
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: "row",
@@ -873,54 +943,64 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
-    backgroundColor: "#fff",
+    backgroundColor: colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   title: {
     fontSize: 28,
     fontWeight: "bold",
     marginBottom: 4,
+    color: colors.textOnLight,
   },
   subtitle: {
     fontSize: 16,
-    color: "#666",
+    color: colors.textSecondary,
   },
   addButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#000",
+    backgroundColor: colors.brand,
     paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 999,
     gap: 6,
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
   addButtonText: {
-    color: "#fff",
-    fontSize: 14,
+    color: colors.white,
+    fontSize: 15,
     fontWeight: "600",
   },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: colors.softCard,
     marginHorizontal: 20,
     marginTop: 16,
     marginBottom: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#e0e0e0",
+    borderColor: "transparent",
+    gap: 8,
   },
   searchContainerFocused: {
-    borderColor: "#000",
-    borderWidth: 2,
+    borderColor: colors.brand,
   },
   searchIcon: {
-    marginRight: 8,
+    marginRight: 4,
+    color: colors.textTertiary,
   },
   searchInput: {
     flex: 1,
-    paddingVertical: 12,
     fontSize: 15,
+    color: colors.textOnLight,
   },
   filterSectionContainer: {
     marginTop: 0,
@@ -932,25 +1012,24 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   categoryTab: {
-    paddingHorizontal: 13,
-    paddingVertical: 7,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     marginRight: 8,
-    borderRadius: 8,
-    backgroundColor: "#fff",
+    borderRadius: 20,
+    backgroundColor: colors.softCard,
     borderWidth: 1,
-    borderColor: "#e0e0e0",
-    maxHeight: 35,
+    borderColor: colors.border,
   },
   categoryTabActive: {
-    backgroundColor: "#000",
-    borderColor: "#000",
+    backgroundColor: colors.brand,
+    borderColor: colors.brand,
   },
   categoryText: {
     fontSize: 14,
-    color: "#666",
+    color: colors.textSecondary,
   },
   categoryTextActive: {
-    color: "#fff",
+    color: colors.white,
     fontWeight: "600",
   },
   filterContainer: {
@@ -965,27 +1044,34 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: 8,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#e0e0e0",
-    backgroundColor: "#fff",
+    borderColor: colors.border,
+    backgroundColor: colors.softCard,
     gap: 6,
+  },
+  filterButtonActive: {
+    backgroundColor: colors.brand,
+    borderColor: colors.brand,
   },
   filterText: {
     fontSize: 14,
-    color: "#666",
+    color: colors.textSecondary,
+  },
+  filterTextActive: {
+    color: colors.white,
   },
   seasonFilterDropdown: {
     position: "absolute",
     top: 40,
     left: 20,
-    backgroundColor: "#fff",
+    backgroundColor: colors.white,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#e0e0e0",
+    borderColor: colors.border,
     minWidth: 120,
     zIndex: 1000,
-    shadowColor: "#000",
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -999,14 +1085,25 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    borderBottomColor: colors.border,
   },
   seasonFilterItemHovered: {
-    backgroundColor: "#f5f5f5",
+    backgroundColor: colors.softCard,
+  },
+  seasonFilterItemPressed: {
+    backgroundColor: colors.brandLight,
+  },
+  seasonFilterItemSelected: {
+    backgroundColor: colors.brand,
+    borderBottomColor: colors.brand,
   },
   seasonFilterText: {
     fontSize: 14,
-    color: "#333",
+    color: colors.textSecondary,
+  },
+  seasonFilterTextActive: {
+    color: colors.white,
+    fontWeight: "600",
   },
   scrollView: {
     flex: 1,
@@ -1082,7 +1179,7 @@ const styles = StyleSheet.create({
   // 모달 스타일
   modalContainer: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: colors.white,
   },
   modalHeader: {
     flexDirection: "row",
@@ -1092,11 +1189,13 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
+    borderBottomColor: colors.border,
+    backgroundColor: colors.white,
   },
   modalTitle: {
     fontSize: 24,
     fontWeight: "bold",
+    color: colors.textOnLight,
   },
   modalContent: {
     flex: 1,
@@ -1117,15 +1216,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: "#f5f5f5",
-    borderRadius: 8,
+    backgroundColor: colors.softCard,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#e0e0e0",
+    borderColor: colors.border,
     gap: 8,
   },
   imageUploadButtonText: {
     fontSize: 14,
-    color: "#666",
+    color: colors.textOnLight,
+    fontWeight: "600",
   },
   cameraButton: {
     flexDirection: "row",
@@ -1133,19 +1233,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: "#f5f5f5",
-    borderRadius: 8,
+    backgroundColor: colors.softCard,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#e0e0e0",
+    borderColor: colors.border,
     gap: 8,
     marginTop: 12,
   },
   imagePreviewContainer: {
     width: "100%",
     aspectRatio: 3 / 4,
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: "hidden",
-    backgroundColor: "#f0f0f0",
+    backgroundColor: colors.softCard,
     position: "relative",
   },
   imagePreview: {
@@ -1163,17 +1263,17 @@ const styles = StyleSheet.create({
   imagePlaceholder: {
     width: "100%",
     aspectRatio: 3 / 2,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 2,
     borderStyle: "dashed",
-    borderColor: "#ccc",
+    borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#fafafa",
+    backgroundColor: colors.softCard,
   },
   imagePlaceholderText: {
     fontSize: 14,
-    color: "#999",
+    color: colors.textSecondary,
     marginTop: 8,
   },
   formGroup: {
@@ -1183,16 +1283,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginBottom: 8,
-    color: "#333",
+    color: colors.textOnLight,
   },
   formInput: {
-    backgroundColor: "#f5f5f5",
+    backgroundColor: colors.softCard,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#e0e0e0",
+    borderColor: colors.border,
     fontSize: 15,
+    color: colors.textOnLight,
   },
   categoryPickerContainer: {
     marginTop: 8,
@@ -1202,20 +1303,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     marginRight: 8,
     borderRadius: 8,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: colors.softCard,
     borderWidth: 1,
-    borderColor: "#e0e0e0",
+    borderColor: colors.border,
   },
   categoryPickerButtonActive: {
-    backgroundColor: "#000",
-    borderColor: "#000",
+    backgroundColor: colors.brand,
+    borderColor: colors.brand,
   },
   categoryPickerText: {
     fontSize: 13,
-    color: "#666",
+    color: colors.textSecondary,
   },
   categoryPickerTextActive: {
-    color: "#fff",
+    color: colors.white,
     fontWeight: "600",
   },
   // 드롭다운 스타일
@@ -1223,23 +1324,23 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#f5f5f5",
+    backgroundColor: colors.softCard,
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#e0e0e0",
+    borderColor: colors.border,
   },
   dropdownButtonText: {
     fontSize: 15,
-    color: "#333",
+    color: colors.textOnLight,
   },
   dropdownList: {
     marginTop: 8,
-    backgroundColor: "#fff",
+    backgroundColor: colors.white,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#e0e0e0",
+    borderColor: colors.border,
     maxHeight: 200,
     overflow: "hidden",
   },
@@ -1250,38 +1351,51 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    borderBottomColor: colors.border,
   },
   dropdownItemText: {
     fontSize: 15,
-    color: "#333",
+    color: colors.textOnLight,
   },
   dropdownItemHovered: {
-    backgroundColor: "#f5f5f5",
+    backgroundColor: colors.softCard,
+  },
+  dropdownItemPressed: {
+    backgroundColor: colors.brandLight,
   },
   dropdownItemSelected: {
-    backgroundColor: "#e8e8e8",
+    backgroundColor: colors.brand,
+    borderBottomColor: colors.brand,
+  },
+  dropdownItemTextSelected: {
+    color: colors.white,
+    fontWeight: "600",
   },
   optionalText: {
     fontSize: 14,
     fontWeight: "400",
-    color: "#999",
+    color: colors.textTertiary,
   },
   modalFooter: {
     paddingHorizontal: 20,
     paddingVertical: 16,
     paddingBottom: 32,
     borderTopWidth: 1,
-    borderTopColor: "#e0e0e0",
+    borderTopColor: colors.border,
   },
   submitButton: {
-    backgroundColor: "#000",
+    backgroundColor: colors.brand,
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: 14,
     alignItems: "center",
+    shadowColor: colors.shadow,
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
   submitButtonText: {
-    color: "#fff",
+    color: colors.white,
     fontSize: 16,
     fontWeight: "600",
   },

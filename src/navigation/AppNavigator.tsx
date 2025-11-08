@@ -1,7 +1,10 @@
 import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { createStackNavigator, TransitionPresets } from "@react-navigation/stack";
+import {
+  createStackNavigator,
+  TransitionPresets,
+} from "@react-navigation/stack";
 import { ActivityIndicator, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
@@ -114,6 +117,7 @@ export default function AppNavigator() {
         // 로그인 후: 메인 앱 (모바일 전용)
         <Tab.Navigator
           screenOptions={{
+            headerShown: false,
             tabBarActiveTintColor: "#000",
             tabBarInactiveTintColor: "#999",
           }}

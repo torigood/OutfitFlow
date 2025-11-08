@@ -2,7 +2,13 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
-import { getAuth } from "firebase/auth";
+import {
+  getAuth,
+  initializeAuth,
+  getReactNativePersistence,
+} from "firebase/auth";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
 import {
   FIREBASE_API_KEY,
   FIREBASE_AUTH_DOMAIN,
@@ -30,6 +36,20 @@ const app = initializeApp(firebaseConfig);
 // Firestore, Storage, Auth 인스턴스 생성
 export const db = getFirestore(app);
 export const storage = getStorage(app);
-export const auth = getAuth(app);
+
+function createNativeAuth() {
+  try {
+    return initializeAuth(app, {
+      persistence: getReactNativePersistence(AsyncStorage),
+    });
+  } catch (error: any) {
+    if (error?.code === "auth/already-initialized") {
+      return getAuth(app);
+    }
+    throw error;
+  }
+}
+
+export const auth = Platform.OS === "web" ? getAuth(app) : createNativeAuth();
 
 export default app;

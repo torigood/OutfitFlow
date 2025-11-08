@@ -12,19 +12,13 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.OutfitFlow.app",
-      "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "이 앱은 현재 위치 기반 날씨 정보를 제공하기 위해 위치 정보가 필요합니다."
-      }
+      "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      },
-      "package": "com.OutfitFlow.app",
-      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -45,7 +39,6 @@
           "locationAlwaysAndWhenInUsePermission": "이 앱은 현재 위치 기반 날씨 정보를 제공하기 위해 위치 정보가 필요합니다."
         }
       ]
-    ],
-    "scheme": "outfitflow"
+    ]
   }
 }

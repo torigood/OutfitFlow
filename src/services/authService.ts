@@ -11,9 +11,12 @@ import {
 } from "firebase/auth";
 import { auth } from "../config/firebase";
 import { Platform } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as AuthSession from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
 import { FIREBASE_WEB_CLIENT_ID, FIREBASE_API_KEY } from "@env";
+
+const REMEMBER_ME_KEY = "@outfitflow_remember_me";
 
 // WebBrowser 세션 완료 처리 (모바일 OAuth용)
 WebBrowser.maybeCompleteAuthSession();
@@ -57,7 +60,8 @@ export const signUpWithEmail = async (
  */
 export const signInWithEmail = async (
   email: string,
-  password: string
+  password: string,
+  rememberMe: boolean = true
 ): Promise<User> => {
   try {
     const userCredential = await signInWithEmailAndPassword(
@@ -65,6 +69,10 @@ export const signInWithEmail = async (
       email,
       password
     );
+
+    // 로그인 유지 설정 저장
+    await AsyncStorage.setItem(REMEMBER_ME_KEY, rememberMe.toString());
+
     return userCredential.user;
   } catch (error: any) {
     throw new Error(getAuthErrorMessage(error.code));
@@ -74,17 +82,20 @@ export const signInWithEmail = async (
 /**
  * Google 계정으로 로그인 (웹/모바일 모두 지원 - Expo Go 호환)
  */
-export const signInWithGoogle = async (): Promise<User> => {
+export const signInWithGoogle = async (
+  rememberMe: boolean = true
+): Promise<User> => {
   try {
     if (Platform.OS === "web") {
       // 웹: Firebase Web SDK 사용
       const provider = new GoogleAuthProvider();
       const userCredential = await signInWithPopup(auth, provider);
+      await AsyncStorage.setItem(REMEMBER_ME_KEY, rememberMe.toString());
       return userCredential.user;
     } else {
       // 모바일: Expo AuthSession 사용 (Expo Go 호환)
       const redirectUri = AuthSession.makeRedirectUri({
-        useProxy: true,
+        scheme: `com.outfitflow.app`,
       });
 
       const request = new AuthSession.AuthRequest({
@@ -103,22 +114,32 @@ export const signInWithGoogle = async (): Promise<User> => {
         const { id_token } = result.params;
 
         if (!id_token) {
-          throw new Error("Google 로그인에 실패했습니다. ID Token을 가져올 수 없습니다.");
+          throw new Error(
+            "Google 로그인에 실패했습니다. ID Token을 가져올 수 없습니다."
+          );
         }
 
         // Firebase credential 생성
         const googleCredential = GoogleAuthProvider.credential(id_token);
 
         // Firebase에 로그인
-        const userCredential = await signInWithCredential(auth, googleCredential);
+        const userCredential = await signInWithCredential(
+          auth,
+          googleCredential
+        );
+
+        // Google 로그인은 항상 로그인 유지
+        await AsyncStorage.setItem(REMEMBER_ME_KEY, rememberMe.toString());
+
         return userCredential.user;
       } else {
         throw new Error("Google 로그인이 취소되었습니다.");
       }
     }
   } catch (error: any) {
-    console.error("Google 로그인 오류:", error);
-    throw new Error(getAuthErrorMessage(error.code) || "Google 로그인에 실패했습니다.");
+    throw new Error(
+      getAuthErrorMessage(error.code) || "Google 로그인에 실패했습니다."
+    );
   }
 };
 
@@ -127,16 +148,10 @@ export const signInWithGoogle = async (): Promise<User> => {
  */
 export const signOut = async (): Promise<void> => {
   try {
-    console.log("🔥 authService.signOut() 호출됨");
-    console.log("🔥 현재 사용자:", auth.currentUser?.email);
-
-    // Firebase 로그아웃
-    console.log("🔥 Firebase signOut 실행 중...");
     await firebaseSignOut(auth);
-    console.log("✅ Firebase signOut 완료");
-    console.log("✅ signOut 함수 완료");
+    // 로그인 유지 설정 초기화
+    await AsyncStorage.removeItem(REMEMBER_ME_KEY);
   } catch (error: any) {
-    console.error("❌ 로그아웃 오류:", error);
     throw new Error("로그아웃에 실패했습니다.");
   }
 };
@@ -157,6 +172,20 @@ export const resetPassword = async (email: string): Promise<void> => {
  */
 export const getCurrentUser = (): User | null => {
   return auth.currentUser;
+};
+
+/**
+ * 로그인 유지 설정 확인
+ */
+export const checkRememberMe = async (): Promise<boolean> => {
+  try {
+    const value = await AsyncStorage.getItem(REMEMBER_ME_KEY);
+    // 값이 없으면 true (기본적으로 로그인 유지)
+    if (value === null) return true;
+    return value === "true";
+  } catch (error) {
+    return true;
+  }
 };
 
 /**
