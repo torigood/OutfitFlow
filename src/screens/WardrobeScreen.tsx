@@ -30,11 +30,57 @@ import {
 import { ClothingItem } from "../types/wardrobe";
 import { useAuth } from "../contexts/AuthContext";
 import { colors } from "../theme/colors";
+import {
+  t,
+  tCategory,
+  CategoryKey,
+  tSeason,
+  SeasonKey,
+} from "../localization/i18n";
 
-const CATEGORIES = ["전체", "상의", "하의", "아우터", "신발", "악세사리"];
-const SEASONS = ["봄", "여름", "가을", "겨울"];
-const CATEGORY_ALL = CATEGORIES[0];
-const SEASON_FILTER_ALL = "전체";
+import { useLanguage } from "../contexts/LanguageContext"; // 언어 변경 감지
+
+const CATEGORY_LABEL_MAP: Record<string, CategoryKey> = {
+  전체: "all",
+  all: "all",
+  상의: "tops",
+  tops: "tops",
+  하의: "bottoms",
+  bottoms: "bottoms",
+  아우터: "outer",
+  outerwear: "outer",
+  신발: "shoes",
+  shoes: "shoes",
+  악세사리: "accessories",
+  accessories: "accessories",
+};
+
+const SEASON_LABEL_MAP: Record<string, SeasonKey> = {
+  전체: "all",
+  all: "all",
+  봄: "spring",
+  spring: "spring",
+  여름: "summer",
+  summer: "summer",
+  가을: "autumn",
+  autumn: "autumn",
+  겨울: "winter",
+  winter: "winter",
+};
+
+// 카테고리와 계절 key 배열
+const CATEGORY_KEYS: CategoryKey[] = [
+  "all",
+  "tops",
+  "bottoms",
+  "outer",
+  "shoes",
+  "accessories",
+];
+const SEASONS: SeasonKey[] = ["spring", "summer", "autumn", "winter"];
+
+const CATEGORY_ALL: CategoryKey = "all";
+const SEASON_FILTER_ALL: SeasonKey = "all";
 
 // Alert 래퍼 함수들
 const showAlert = (title: string, message?: string) => {
@@ -48,18 +94,18 @@ const showConfirm = (
   onCancel?: () => void
 ) => {
   Alert.alert(title, message, [
-    { text: "취소", style: "cancel", onPress: onCancel },
-    { text: "확인", style: "destructive", onPress: onConfirm },
+    { text: t("cancleDelete"), style: "cancel", onPress: onCancel },
+    { text: t("confirmDelete"), style: "destructive", onPress: onConfirm },
   ]);
 };
 
 export default function WardrobeScreen() {
   const { user } = useAuth();
-  const [selectedCategory, setSelectedCategory] = useState(CATEGORY_ALL);
+  const [selectedCategory, setSelectedCategory] = useState<CategoryKey>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [clothes, setClothes] = useState<ClothingItem[]>([]);
   const [selectedSeasonFilter, setSelectedSeasonFilter] =
-    useState(SEASON_FILTER_ALL);
+    useState<SeasonKey>(SEASON_FILTER_ALL);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   // 로딩 상태
@@ -87,8 +133,8 @@ export default function WardrobeScreen() {
 
   // 폼 데이터
   const [itemName, setItemName] = useState("");
-  const [itemCategory, setItemCategory] = useState("");
-  const [itemSeasons, setItemSeasons] = useState<string[]>([]); // 복수 선택 가능
+  const [itemCategory, setItemCategory] = useState<CategoryKey | "">("");
+  const [itemSeasons, setItemSeasons] = useState<SeasonKey[]>([]); // 복수 선택 가능
   const [itemColor, setItemColor] = useState("");
   const [itemBrand, setItemBrand] = useState("");
 
@@ -116,6 +162,9 @@ export default function WardrobeScreen() {
     }
   };
 
+  // 렌더링
+  const { language } = useLanguage(); // 언어 바뀌면 다시 렌더
+
   // Pull-to-refresh 핸들러
   const onRefresh = async () => {
     if (!user) return;
@@ -142,7 +191,7 @@ export default function WardrobeScreen() {
       await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (permissionResult.granted === false) {
-      showAlert("권한 필요", "갤러리 접근 권한이 필요합니다.");
+      showAlert(t("permissionTitle"), t("permissionGallery"));
       return;
     }
 
@@ -163,7 +212,7 @@ export default function WardrobeScreen() {
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
 
     if (permissionResult.granted === false) {
-      showAlert("권한 필요", "카메라 접근 권한이 필요합니다.");
+      showAlert(t("permissionTitle"), t("permissionCamera"));
       return;
     }
 
@@ -179,7 +228,7 @@ export default function WardrobeScreen() {
   };
 
   // 계절 토글 (복수 선택)
-  const toggleSeason = (season: string) => {
+  const toggleSeason = (season: SeasonKey) => {
     if (itemSeasons.includes(season)) {
       setItemSeasons(itemSeasons.filter((s) => s !== season));
     } else {
@@ -215,9 +264,18 @@ export default function WardrobeScreen() {
   const handleEditItem = () => {
     if (selectedItem) {
       setItemName(selectedItem.name);
-      setItemCategory(selectedItem.category);
+      // DB에 저장된 category 값을 key로 변환
+      setItemCategory(
+        CATEGORY_LABEL_MAP[selectedItem.category] || selectedItem.category
+      );
+      // DB에 저장된 seasons 문자열을 key 배열로 변환
       setItemSeasons(
-        selectedItem.seasons ? selectedItem.seasons.split(", ") : []
+        selectedItem.seasons
+          ? selectedItem.seasons
+              .split(", ")
+              .map((s: string) => SEASON_LABEL_MAP[s] || s)
+              .filter((s: any): s is SeasonKey => SEASONS.includes(s))
+          : []
       );
       setItemColor(selectedItem.color || "");
       setItemBrand(selectedItem.brand || "");
@@ -232,26 +290,30 @@ export default function WardrobeScreen() {
   const handleDeleteItem = () => {
     if (!user) return;
 
-    showConfirm("삭제 확인", "이 아이템을 삭제하시겠습니까?", async () => {
-      try {
-        setIsUploading(true);
-        await deleteClothingItem(user.uid, selectedItem.id);
-        setIsDetailModalVisible(false);
-        setSelectedItem(null);
-        showAlert("아이템이 삭제되었습니다.");
-        // 목록 새로고침
-        await loadClothes();
-      } catch (error) {
-        showAlert(
-          "오류",
-          `삭제 실패: ${
-            error instanceof Error ? error.message : "알 수 없는 오류"
-          }`
-        );
-      } finally {
-        setIsUploading(false);
+    showConfirm(
+      t("deleteItemConfirmTitle"),
+      t("deleteItemConfirmMessage"),
+      async () => {
+        try {
+          setIsUploading(true);
+          await deleteClothingItem(user.uid, selectedItem.id);
+          setIsDetailModalVisible(false);
+          setSelectedItem(null);
+          showAlert(t("deleteSuccess"));
+          // 목록 새로고침
+          await loadClothes();
+        } catch (error) {
+          showAlert(
+            "오류",
+            `삭제 실패: ${
+              error instanceof Error ? error.message : "알 수 없는 오류"
+            }`
+          );
+        } finally {
+          setIsUploading(false);
+        }
       }
-    });
+    );
   };
 
   // 상세 모달 닫기
@@ -268,7 +330,7 @@ export default function WardrobeScreen() {
     }
 
     if (!selectedImage || !itemName || !itemCategory) {
-      showAlert("입력 오류", "이미지, 아이템 이름, 카테고리는 필수입니다.");
+      showAlert(t("enterErrorTitle"), t("enterError"));
       return;
     }
 
@@ -304,7 +366,7 @@ export default function WardrobeScreen() {
           imageUrl: imageUrl,
           cloudinaryPublicId: cloudinaryPublicId,
         });
-        showAlert("성공", "아이템이 수정되었습니다!");
+        showAlert(t("itemEditSuccessTitle"), t("itemEditMessage"));
       } else {
         // 추가 모드
         await addClothingItem(user.uid, {
@@ -316,7 +378,7 @@ export default function WardrobeScreen() {
           imageUrl: imageUrl,
           cloudinaryPublicId: cloudinaryPublicId,
         });
-        showAlert("성공", "아이템이 추가되었습니다!");
+        showAlert(t("itemAddedTitle"), t("itemAddedMessage"));
       }
 
       // 목록 새로고침
@@ -341,15 +403,26 @@ export default function WardrobeScreen() {
 
   // 필터링된 옷 목록
   const filteredClothes = clothes.filter((item) => {
+    // DB에 저장된 category를 key로 변환 (한글/영어 호환)
+    const itemCategoryKey = CATEGORY_LABEL_MAP[item.category] || item.category;
     const matchCategory =
-      selectedCategory === CATEGORY_ALL || item.category === selectedCategory;
+      selectedCategory === CATEGORY_ALL || itemCategoryKey === selectedCategory;
+
     const matchSearch =
       searchQuery === "" ||
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.brand.toLowerCase().includes(searchQuery.toLowerCase());
+
+    // DB에 저장된 seasons를 key로 변환해서 매칭 (한글/영어 호환)
+    const itemSeasonKeys = (item as any).seasons
+      ? (item as any).seasons
+          .split(", ")
+          .map((s: string) => SEASON_LABEL_MAP[s] || s)
+      : [];
     const matchSeason =
       selectedSeasonFilter === SEASON_FILTER_ALL ||
-      (item as any).seasons?.includes(selectedSeasonFilter);
+      itemSeasonKeys.includes(selectedSeasonFilter);
+
     return matchCategory && matchSearch && matchSeason;
   });
 
@@ -360,9 +433,10 @@ export default function WardrobeScreen() {
           {/* 헤더 */}
           <View style={styles.header}>
             <View>
-              <Text style={styles.title}>내 옷장</Text>
+              <Text style={styles.title}>{t("myWardrobe")}</Text>
               <Text style={styles.subtitle}>
-                총 {clothes.length}개의 아이템
+                {t("total")} {clothes.length}
+                {t("afterTotal")}
               </Text>
             </View>
             <TouchableOpacity
@@ -370,7 +444,7 @@ export default function WardrobeScreen() {
               onPress={() => setIsModalVisible(true)}
             >
               <Ionicons name="add" size={20} color={colors.white} />
-              <Text style={styles.addButtonText}>아이템 추가</Text>
+              <Text style={styles.addButtonText}>{t("addItemButton")}</Text>
             </TouchableOpacity>
           </View>
 
@@ -389,7 +463,7 @@ export default function WardrobeScreen() {
             />
             <TextInput
               style={styles.searchInput}
-              placeholder="아이템 검색..."
+              placeholder={t("searchItems")}
               value={searchQuery}
               onChangeText={setSearchQuery}
               onFocus={() => setIsSearchFocused(true)}
@@ -404,8 +478,9 @@ export default function WardrobeScreen() {
               horizontal
               showsHorizontalScrollIndicator={false}
               style={styles.categoryContainer}
+              key={language} // 언어 바뀌면 스크롤뷰도 리렌더
             >
-              {CATEGORIES.map((category) => (
+              {CATEGORY_KEYS.map((category) => (
                 <TouchableOpacity
                   key={category}
                   style={[
@@ -421,7 +496,7 @@ export default function WardrobeScreen() {
                         styles.categoryTextActive,
                     ]}
                   >
-                    {category}
+                    {tCategory(category)}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -446,7 +521,7 @@ export default function WardrobeScreen() {
                     isSeasonFilterActive && styles.filterTextActive,
                   ]}
                 >
-                  {selectedSeasonFilter}
+                  {tSeason(selectedSeasonFilter)}
                 </Text>
                 <Ionicons
                   name={
@@ -480,7 +555,7 @@ export default function WardrobeScreen() {
                             isSelected && styles.seasonFilterTextActive,
                           ]}
                         >
-                          {season}
+                          {tSeason(season)}
                         </Text>
                         {isSelected && (
                           <Ionicons
@@ -570,7 +645,7 @@ export default function WardrobeScreen() {
                 <View style={styles.modalContainer}>
                   {/* 모달 헤더 */}
                   <View style={styles.modalHeader}>
-                    <Text style={styles.modalTitle}>새 아이템 추가</Text>
+                    <Text style={styles.modalTitle}>{t("AddNewItem")}</Text>
                     <TouchableOpacity onPress={closeModal}>
                       <Ionicons
                         name="close"
@@ -615,10 +690,10 @@ export default function WardrobeScreen() {
                             color={colors.textTertiary}
                           />
                           <Text style={styles.imagePlaceholderText}>
-                            클릭하여 파일을 선택하거나
+                            {t("clickToSelect")}
                           </Text>
                           <Text style={styles.imagePlaceholderText}>
-                            드래그 앤 드롭하세요
+                            {t("dragAnddrop")}
                           </Text>
                         </TouchableOpacity>
                       )}
@@ -634,17 +709,17 @@ export default function WardrobeScreen() {
                           color={colors.textSecondary}
                         />
                         <Text style={styles.imageUploadButtonText}>
-                          사진 촬영
+                          {t("takePiccture")}
                         </Text>
                       </TouchableOpacity>
                     </View>
 
                     {/* 아이템 이름 */}
                     <View style={styles.formGroup}>
-                      <Text style={styles.formLabel}>아이템 이름</Text>
+                      <Text style={styles.formLabel}>{t("name")}</Text>
                       <TextInput
                         style={styles.formInput}
-                        placeholder="아이템 이름을 입력하세요"
+                        placeholder={t("nameItem")}
                         placeholderTextColor={colors.textTertiary}
                         value={itemName}
                         onChangeText={setItemName}
@@ -653,7 +728,7 @@ export default function WardrobeScreen() {
 
                     {/* 카테고리 */}
                     <View style={styles.formGroup}>
-                      <Text style={styles.formLabel}>카테고리</Text>
+                      <Text style={styles.formLabel}>{t("category")}</Text>
                       <TouchableOpacity
                         style={styles.dropdownButton}
                         onPress={() =>
@@ -661,7 +736,9 @@ export default function WardrobeScreen() {
                         }
                       >
                         <Text style={styles.dropdownButtonText}>
-                          {itemCategory || "카테고리 선택"}
+                          {itemCategory
+                            ? tCategory(itemCategory)
+                            : tCategory("all")}
                         </Text>
                         <Ionicons
                           name={
@@ -673,50 +750,50 @@ export default function WardrobeScreen() {
                       </TouchableOpacity>
                       {showCategoryDropdown && (
                         <View style={styles.dropdownList}>
-                          {CATEGORIES.filter((cat) => cat !== CATEGORY_ALL).map(
-                            (category) => {
-                              const isSelected = itemCategory === category;
-                              return (
-                                <Pressable
-                                  key={category}
-                                  style={({ hovered, pressed }: any) => [
-                                    styles.dropdownItem,
-                                    hovered && styles.dropdownItemHovered,
-                                    pressed && styles.dropdownItemPressed,
-                                    isSelected && styles.dropdownItemSelected,
+                          {CATEGORY_KEYS.filter(
+                            (cat) => cat !== CATEGORY_ALL
+                          ).map((category) => {
+                            const isSelected = itemCategory === category;
+                            return (
+                              <Pressable
+                                key={category}
+                                style={({ hovered, pressed }: any) => [
+                                  styles.dropdownItem,
+                                  hovered && styles.dropdownItemHovered,
+                                  pressed && styles.dropdownItemPressed,
+                                  isSelected && styles.dropdownItemSelected,
+                                ]}
+                                onPress={() => {
+                                  setItemCategory(category);
+                                  setShowCategoryDropdown(false);
+                                }}
+                              >
+                                <Text
+                                  style={[
+                                    styles.dropdownItemText,
+                                    isSelected &&
+                                      styles.dropdownItemTextSelected,
                                   ]}
-                                  onPress={() => {
-                                    setItemCategory(category);
-                                    setShowCategoryDropdown(false);
-                                  }}
                                 >
-                                  <Text
-                                    style={[
-                                      styles.dropdownItemText,
-                                      isSelected &&
-                                        styles.dropdownItemTextSelected,
-                                    ]}
-                                  >
-                                    {category}
-                                  </Text>
-                                  {isSelected && (
-                                    <Ionicons
-                                      name="checkmark"
-                                      size={20}
-                                      color={colors.white}
-                                    />
-                                  )}
-                                </Pressable>
-                              );
-                            }
-                          )}
+                                  {tCategory(category)}
+                                </Text>
+                                {isSelected && (
+                                  <Ionicons
+                                    name="checkmark"
+                                    size={20}
+                                    color={colors.white}
+                                  />
+                                )}
+                              </Pressable>
+                            );
+                          })}
                         </View>
                       )}
                     </View>
 
                     {/* 계절 (복수 선택) */}
                     <View style={styles.formGroup}>
-                      <Text style={styles.formLabel}>계절</Text>
+                      <Text style={styles.formLabel}>{t("season")}</Text>
                       <TouchableOpacity
                         style={styles.dropdownButton}
                         onPress={() =>
@@ -725,8 +802,8 @@ export default function WardrobeScreen() {
                       >
                         <Text style={styles.dropdownButtonText}>
                           {itemSeasons.length > 0
-                            ? itemSeasons.join(", ")
-                            : "계절 선택 (중복 선택 가능)"}
+                            ? itemSeasons.map((s) => tSeason(s)).join(", ")
+                            : tSeason("all")}
                         </Text>
                         <Ionicons
                           name={
@@ -758,7 +835,7 @@ export default function WardrobeScreen() {
                                       styles.dropdownItemTextSelected,
                                   ]}
                                 >
-                                  {season}
+                                  {tSeason(season)}
                                 </Text>
                                 {isSelected && (
                                   <Ionicons
@@ -776,10 +853,10 @@ export default function WardrobeScreen() {
 
                     {/* 색상 */}
                     <View style={styles.formGroup}>
-                      <Text style={styles.formLabel}>색상</Text>
+                      <Text style={styles.formLabel}>{t("color")}</Text>
                       <TextInput
                         style={styles.formInput}
-                        placeholder="색상을 입력하세요"
+                        placeholder={t("colorname")}
                         placeholderTextColor={colors.textTertiary}
                         value={itemColor}
                         onChangeText={setItemColor}
@@ -789,11 +866,12 @@ export default function WardrobeScreen() {
                     {/* 브랜드 (선택) */}
                     <View style={styles.formGroup}>
                       <Text style={styles.formLabel}>
-                        브랜드 <Text style={styles.optionalText}>(선택)</Text>
+                        {t("brand")}{" "}
+                        <Text style={styles.optionalText}>{t("optional")}</Text>
                       </Text>
                       <TextInput
                         style={styles.formInput}
-                        placeholder="브랜드를 입력하세요"
+                        placeholder={t("brandname")}
                         placeholderTextColor={colors.textTertiary}
                         value={itemBrand}
                         onChangeText={setItemBrand}
@@ -820,7 +898,7 @@ export default function WardrobeScreen() {
                         </View>
                       ) : (
                         <Text style={styles.submitButtonText}>
-                          {isEditMode ? "아이템 수정" : "아이템 추가"}
+                          {isEditMode ? t("editItem") : t("addItemButton")}
                         </Text>
                       )}
                     </TouchableOpacity>
@@ -843,7 +921,7 @@ export default function WardrobeScreen() {
                   <>
                     {/* 상세 헤더 */}
                     <View style={styles.detailHeader}>
-                      <Text style={styles.detailTitle}>아이템 상세</Text>
+                      <Text style={styles.detailTitle}>{t("itemDetail")}</Text>
                       <TouchableOpacity onPress={closeDetailModal}>
                         <Ionicons
                           name="close"
@@ -867,31 +945,43 @@ export default function WardrobeScreen() {
                       {/* 정보 */}
                       <View style={styles.detailInfo}>
                         <View style={styles.detailRow}>
-                          <Text style={styles.detailLabel}>이름</Text>
+                          <Text style={styles.detailLabel}>{t("name")}</Text>
                           <Text style={styles.detailValue}>
                             {selectedItem.name}
                           </Text>
                         </View>
                         <View style={styles.detailRow}>
-                          <Text style={styles.detailLabel}>카테고리</Text>
+                          <Text style={styles.detailLabel}>
+                            {t("category")}
+                          </Text>
                           <Text style={styles.detailValue}>
-                            {selectedItem.category}
+                            {tCategory(
+                              CATEGORY_LABEL_MAP[selectedItem.category] ||
+                                selectedItem.category
+                            )}
                           </Text>
                         </View>
                         <View style={styles.detailRow}>
-                          <Text style={styles.detailLabel}>계절</Text>
+                          <Text style={styles.detailLabel}>{t("season")}</Text>
                           <Text style={styles.detailValue}>
-                            {selectedItem.seasons || "-"}
+                            {selectedItem.seasons
+                              ? selectedItem.seasons
+                                  .split(", ")
+                                  .map((s: string) =>
+                                    tSeason(SEASON_LABEL_MAP[s] || s)
+                                  )
+                                  .join(", ")
+                              : "-"}
                           </Text>
                         </View>
                         <View style={styles.detailRow}>
-                          <Text style={styles.detailLabel}>색상</Text>
+                          <Text style={styles.detailLabel}>{t("color")}</Text>
                           <Text style={styles.detailValue}>
                             {selectedItem.color || "-"}
                           </Text>
                         </View>
                         <View style={styles.detailRow}>
-                          <Text style={styles.detailLabel}>브랜드</Text>
+                          <Text style={styles.detailLabel}>{t("brand")}</Text>
                           <Text style={styles.detailValue}>
                             {selectedItem.brand || "-"}
                           </Text>
@@ -905,15 +995,36 @@ export default function WardrobeScreen() {
                         style={styles.editButton}
                         onPress={handleEditItem}
                       >
-                        <Ionicons name="pencil" size={20} color="#fff" />
-                        <Text style={styles.editButtonText}>수정</Text>
+                        <Ionicons
+                          name="pencil"
+                          size={20}
+                          color={colors.white}
+                        />
+                        <Text style={styles.editButtonText}>
+                          {t("editText")}
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.confirmButton}
+                        onPress={closeDetailModal}
+                      >
+                        <Ionicons
+                          name="checkmark"
+                          size={20}
+                          color={colors.white}
+                        />
+                        <Text style={styles.confirmButtonText}>
+                          {t("confirmText")}
+                        </Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={styles.deleteButton}
                         onPress={handleDeleteItem}
                       >
-                        <Ionicons name="trash" size={20} color="#fff" />
-                        <Text style={styles.deleteButtonText}>삭제</Text>
+                        <Ionicons name="trash" size={20} color={colors.white} />
+                        <Text style={styles.deleteButtonText}>
+                          {t("deleteText")}
+                        </Text>
                       </TouchableOpacity>
                     </View>
                   </>
@@ -1411,13 +1522,13 @@ const styles = StyleSheet.create({
   detailModalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
+    justifyContent: "space-around",
     alignItems: "center",
   },
   detailModalContent: {
     width: "95%",
-    height: "90%",
-    backgroundColor: "#fff",
+    height: "85%",
+    backgroundColor: colors.softCard,
     borderRadius: 16,
     overflow: "hidden",
   },
@@ -1429,7 +1540,7 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
+    borderBottomColor: colors.softCard,
   },
   detailTitle: {
     fontSize: 20,
@@ -1478,6 +1589,21 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   editButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  confirmButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.gray,
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
+  },
+  confirmButtonText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",

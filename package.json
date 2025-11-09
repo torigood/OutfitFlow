@@ -3,9 +3,10 @@
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
-    "start": "expo start"
+    "start": "expo start --tunnel"
   },
   "dependencies": {
+    "@expo/cli": "^54.0.16",
     "@expo/metro-runtime": "~6.1.2",
     "@expo/vector-icons": "^15.0.3",
     "@google/generative-ai": "^0.24.1",
@@ -28,11 +29,13 @@
     "expo-image-manipulator": "~14.0.7",
     "expo-image-picker": "~17.0.0",
     "expo-linear-gradient": "~15.0.7",
+    "expo-localization": "~17.0.7",
     "expo-location": "^19.0.7",
     "expo-status-bar": "~3.0.0",
     "expo-system-ui": "~6.0.8",
     "expo-web-browser": "^15.0.9",
     "firebase": "^12.4.0",
+    "i18n-js": "^4.5.1",
     "lucide-react-native": "^0.552.0",
     "moti": "^0.30.0",
     "react": "19.1.0",
@@ -51,6 +54,7 @@
     "@babel/core": "^7.25.2",
     "@types/react": "~19.1.0",
     "cloudinary": "^2.8.0",
+    "cross-env": "^10.1.0",
     "firebase-admin": "^13.5.0",
     "react-native-dotenv": "^3.4.11",
     "typescript": "~5.9.2"

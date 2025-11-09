@@ -8,6 +8,9 @@ import {
 import { ActivityIndicator, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../contexts/AuthContext";
+import { useLanguage } from "../contexts/LanguageContext";
+import { t } from "../localization/i18n";
+import { colors } from "../theme/colors";
 import HomeScreen from "../screens/HomeScreen";
 import WardrobeScreen from "../screens/WardrobeScreen";
 import AIRecommendScreen from "../screens/AIRecommendScreen";
@@ -22,7 +25,39 @@ import ForgotPasswordScreen from "../screens/auth/ForgotPasswordScreen";
 const Tab = createBottomTabNavigator();
 const AuthStack = createStackNavigator();
 
-// Auth Stack Navigator (로그인 전)
+const createTabIcon =
+  (iconName: keyof typeof Ionicons.glyphMap) =>
+  ({
+    color,
+    size,
+    focused,
+  }: {
+    color: string;
+    size: number;
+    focused: boolean;
+  }) =>
+    (
+      <View
+        style={{
+          backgroundColor: focused ? colors.brandLight : "transparent",
+          borderRadius: 15,
+          paddingHorizontal: focused ? 3 : 0,
+          paddingVertical: focused ? 3 : 0,
+          minWidth: 55,
+          minHeight: 55,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Ionicons
+          name={iconName}
+          size={focused ? size + 4 : size}
+          color={focused ? colors.brand : color}
+        />
+      </View>
+    );
+
+// Auth Stack Navigator (로그????
 function AuthNavigator() {
   return (
     <AuthStack.Navigator
@@ -101,8 +136,8 @@ function AuthNavigator() {
 
 export default function AppNavigator() {
   const { isAuthenticated, loading } = useAuth();
+  const { language } = useLanguage();
 
-  // 로딩 중 화면
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -114,77 +149,78 @@ export default function AppNavigator() {
   return (
     <NavigationContainer>
       {isAuthenticated ? (
-        // 로그인 후: 메인 앱 (모바일 전용)
         <Tab.Navigator
           screenOptions={{
             headerShown: false,
-            tabBarActiveTintColor: "#000",
-            tabBarInactiveTintColor: "#999",
+            tabBarActiveTintColor: colors.brand,
+            tabBarInactiveTintColor: colors.textSecondary,
+            tabBarStyle: {
+              backgroundColor: colors.white,
+              borderTopColor: colors.border,
+              height: 72,
+              paddingTop: 10,
+              paddingBottom: 12,
+            },
+            tabBarLabelStyle: {
+              fontSize: 12,
+              fontWeight: "600",
+            },
+            tabBarIconStyle: {
+              marginBottom: -4,
+            },
           }}
         >
           <Tab.Screen
             name="Home"
             component={HomeScreen}
             options={{
-              title: "홈",
-              tabBarIcon: ({ color, size }) => (
-                <Ionicons name="home" size={size} color={color} />
-              ),
+              title: t("homeTab"),
+              tabBarIcon: createTabIcon("home"),
             }}
           />
           <Tab.Screen
             name="Wardrobe"
             component={WardrobeScreen}
             options={{
-              title: "옷장",
-              tabBarIcon: ({ color, size }) => (
-                <Ionicons name="shirt" size={size} color={color} />
-              ),
+              title: t("wardrobeTab"),
+              tabBarIcon: createTabIcon("shirt"),
             }}
           />
           <Tab.Screen
             name="AIRecommend"
             component={AIRecommendScreen}
             options={{
-              title: "AI 추천",
-              tabBarIcon: ({ color, size }) => (
-                <Ionicons name="sparkles" size={size} color={color} />
-              ),
+              title: t("aiTab"),
+              tabBarIcon: createTabIcon("sparkles"),
             }}
           />
           <Tab.Screen
             name="Community"
             component={CommunityScreen}
             options={{
-              title: "커뮤니티",
-              tabBarIcon: ({ color, size }) => (
-                <Ionicons name="people" size={size} color={color} />
-              ),
+              title: t("communityTab"),
+              tabBarIcon: createTabIcon("people"),
             }}
           />
           <Tab.Screen
             name="Shopping"
             component={ShoppingScreen}
             options={{
-              title: "쇼핑",
-              tabBarIcon: ({ color, size }) => (
-                <Ionicons name="cart" size={size} color={color} />
-              ),
+              title: t("shoppingTab"),
+              tabBarIcon: createTabIcon("cart"),
             }}
           />
           <Tab.Screen
             name="Settings"
             component={SettingScreen}
             options={{
-              title: "설정",
-              tabBarIcon: ({ color, size }) => (
-                <Ionicons name="settings" size={size} color={color} />
-              ),
+              title: t("settingsTab"),
+              tabBarIcon: createTabIcon("settings"),
             }}
           />
         </Tab.Navigator>
       ) : (
-        // 로그인 전: Auth Stack
+        // 로그???? Auth Stack
         <AuthNavigator />
       )}
     </NavigationContainer>

@@ -1,0 +1,67 @@
+  addClothingItem,
+  getClothingItems,
+  updateClothingItem,
+  deleteClothingItem,
+} from "../services/wardrobeService";
+import { ClothingItem } from "../types/wardrobe";
+import { useAuth } from "../contexts/AuthContext";
+
+import { colors } from "../theme/colors";
+
+import { t, tCategory, CategoryKey, SeasonKey } from "../localization/i18n";
+
+import { useLanguage } from "../contexts/LanguageContext"; // 언어 변경 감지
+
+const CATEGORY_LABEL_MAP: Record<string, CategoryKey> = {
+  전체: "all",
+  all: "all",
+  상의: "tops",
+  tops: "tops",
+  하의: "bottoms",
+  bottoms: "bottoms",
+  아우터: "outer",
+  outerwear: "outer",
+  신발: "shoes",
+  shoes: "shoes",
+  악세사리: "accessories",
+  accessories: "accessories",
+};
+
+const SEASON_LABEL_MAP: Record<string, SeasonKey> = {
+  전체: "all",
+  all: "all",
+  봄: "spring",
+  spring: "spring",
+  여름: "summer",
+  summer: "summer",
+  가을: "autumn",
+  autumn: "autumn",
+  겨울: "winter",
+  winter: "winter",
+};
+const CATEGORY_ALL = CATEGORY_LABEL_MAP[0];
+const SEASON_FILTER_ALL = "전체";
+
+// Alert 래퍼 함수들
+const showAlert = (title: string, message?: string) => {
+  Alert.alert(title, message);
+};
+
+const showConfirm = (
+  title: string,
+  message: string,
+  onConfirm: () => void,
+  onCancel?: () => void
+) => {
+  Alert.alert(title, message, [
+    { text: "취소", style: "cancel", onPress: onCancel },
+    { text: "확인", style: "destructive", onPress: onConfirm },
+  ]);
+};
+
+export default function WardrobeScreen() {
+  const { user } = useAuth();
+  const [selectedCategory, setSelectedCategory] = useState<CategoryKey>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [clothes, setClothes] = useState<ClothingItem[]>([]);
+  const [selectedSeasonFilter, setSelectedSeasonFilter] =
