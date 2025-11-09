@@ -57,7 +57,7 @@ const createTabIcon =
       </View>
     );
 
-// Auth Stack Navigator (로그????
+// Auth Stack Navigator
 function AuthNavigator() {
   return (
     <AuthStack.Navigator
@@ -220,7 +220,6 @@ export default function AppNavigator() {
           />
         </Tab.Navigator>
       ) : (
-        // 로그???? Auth Stack
         <AuthNavigator />
       )}
     </NavigationContainer>
