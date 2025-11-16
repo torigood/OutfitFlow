@@ -3,39 +3,47 @@
 > React Native app that turns your wardrobe and local weather into tailored outfit recommendations powered by Google Gemini.
 
 ## At a Glance
+
 - AI outfits blend Gemini 2.0 Flash reasoning with OpenWeather data for TPO-aware looks.
 - Firebase Authentication + Firestore subcollections keep every user’s wardrobe isolated.
 - Expo toolchain, Cloudinary image CDN, and navigation polish deliver native-quality UX.
 
 ## Key Features
-**Auth & Personalization**  
-- Firebase Authentication (Email/Password, Google)  
+
+**Auth & Personalization**
+
+- Firebase Authentication (Email/Password, Google)
 - `users/{userId}/wardrobe` schema for hard data separation
 
-**Wardrobe Management**  
-- CRUD for garments plus category/season/brand filters  
+**Wardrobe Management**
+
+- CRUD for garments plus category/season/brand filters
 - Cloudinary uploads with CDN thumbnails
 
-**AI Outfit Picks**  
-- Prompted Gemini 2.0 Flash analyzes closet, rules, and colors  
-- OpenWeatherMap feeds real-time conditions  
+**AI Outfit Picks**
+
+- Prompted Gemini 2.0 Flash analyzes closet, rules, and colors
+- OpenWeatherMap feeds real-time conditions
 - Generates cards with color harmony and dress-code checks
 
-**Mobile Experience**  
-- React Native + Expo Router navigation  
-- Light/Dark themes and smooth stack transitions  
+**Mobile Experience**
+
+- React Native + Expo Router navigation
+- Light/Dark themes and smooth stack transitions
 - Optimized bundles for iOS and Android targets
 
 ## Tech Stack
-| Area | Tools |
-| --- | --- |
-| App | React Native 0.81, Expo SDK 54, TypeScript |
+
+| Area     | Tools                                                     |
+| -------- | --------------------------------------------------------- |
+| App      | React Native 0.81, Expo SDK 54, TypeScript                |
 | State/UI | React Context API, React Navigation, Expo Linear Gradient |
-| Backend | Firebase Authentication & Firestore |
-| Media | Cloudinary CDN |
-| AI/Data | Google Gemini 2.0 Flash, OpenWeatherMap API |
+| Backend  | Firebase Authentication & Firestore                       |
+| Media    | Cloudinary CDN                                            |
+| AI/Data  | Google Gemini 2.0 Flash, OpenWeatherMap API               |
 
 ## Quick Start
+
 ```bash
 git clone https://github.com/torigood/OutfitFlow.git
 cd OutfitFlow
@@ -46,12 +54,14 @@ npx expo run:android   # emulator or USB device
 ```
 
 ## Required API Keys
+
 - Firebase Console: Authentication & Firestore config
 - Cloudinary Dashboard: cloud name + unsigned preset
 - Google AI Studio: Gemini API Key
 - OpenWeatherMap: Current Weather API Key
 
 ## Folder Snapshot
+
 ```
 src/
 ├─ config/        # Firebase, Cloudinary configs
@@ -62,6 +72,7 @@ src/
 ```
 
 ## Screenshots
+
 <table style="border-collapse:collapse; margin:0 auto;">
   <tr>
     <td style="padding:6px;"><img src="https://github.com/user-attachments/assets/d1d56589-9bfe-4413-9dce-45226f85f927" alt="Image1" width="240" style="display:block;" /></td>
@@ -75,5 +86,6 @@ src/
 </table>
 
 ## Contact
+
 - Issues & feedback: [GitHub Issues](https://github.com/torigood/OutfitFlow/issues)
 - Korean version available at [`README_KO.md`](./README_KO.md)
