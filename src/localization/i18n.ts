@@ -168,6 +168,7 @@ const translations = {
     signupLoginLink: "Log In",
     signupMissingFields: "Please fill out all fields.",
     signupPasswordMismatch: "Passwords do not match.",
+    notValideEmail: "Please enter valid email address.",
     signupPasswordLength: "Password must be at least 8 characters.",
     signupSuccessTitle: "Sign-up Successful",
     signupSuccessMessage: "Welcome to OutfitFlow!",
@@ -189,6 +190,20 @@ const translations = {
       "1 top / 1 bottom / 1 outerwear / 1 pair of shoes — accessories unlimited.",
     wardrobeChooseButton: "Select Items",
     wantStyle: "Choose Style",
+    //비밀번호 찾기
+    authConfirm: "OK",
+    forgotTitle: "Reset Password",
+    forgotSubtitle:
+      "Enter the email you used to sign up and we'll send you a reset link.",
+    forgotEmailLabel: "Email",
+    forgotEmailPlaceholder: "example@email.com",
+    forgotButton: "Send Reset Link",
+    forgotInfoText: "Check your spam folder if the email doesn't arrive.",
+    forgotMissingEmail: "Please enter your email address.",
+    forgotSuccessTitle: "Email Sent",
+    forgotSuccessMessage:
+      "We've sent a password reset link to your email. Please check your inbox.",
+    forgotErrorTitle: "Error",
   },
   ko: {
     lang: "언어",
@@ -360,6 +375,7 @@ const translations = {
     signupLoginLink: "로그인",
     signupMissingFields: "모든 항목을 입력해주세요.",
     signupPasswordMismatch: "비밀번호가 일치하지 않습니다.",
+    notValideEmail: "유효하지 않은 이메일 주소입니다.",
     signupPasswordLength: "비밀번호는 최소 8자 이상이어야 합니다.",
     signupSuccessTitle: "회원가입 성공",
     signupSuccessMessage: "OutfitFlow에 오신 것을 환영합니다!",
@@ -380,6 +396,20 @@ const translations = {
     selectInstruc: "상의/하의/아우터/신발은 각 1개씩, 악세사리는 제한 없음",
     wardrobeChooseButton: "옷장에서 선택하기",
     wantStyle: "원하는 스타일",
+    //비밀번호 찾기
+    authConfirm: "확인",
+    forgotTitle: "비밀번호 찾기",
+    forgotSubtitle:
+      "가입하신 이메일 주소를 입력하시면\n비밀번호 재설정 링크를 보내드립니다.",
+    forgotEmailLabel: "이메일",
+    forgotEmailPlaceholder: "example@email.com",
+    forgotButton: "재설정 링크 전송",
+    forgotInfoText: "이메일이 도착하지 않으면 스팸함을 확인해주세요.",
+    forgotMissingEmail: "이메일을 입력해주세요.",
+    forgotSuccessTitle: "이메일 전송 완료",
+    forgotSuccessMessage:
+      "비밀번호 재설정 링크가 이메일로 전송되었습니다. 이메일을 확인해주세요.",
+    forgotErrorTitle: "오류",
   },
 } as const;
 

@@ -101,7 +101,7 @@ const LoginScreen = () => {
       Toast.show({
         type: "error",
         text1: t("loginErrorTitle"),
-        text2: error.message,
+        text2: t("notValideEmail"),
       });
     } finally {
       setLoading(false);

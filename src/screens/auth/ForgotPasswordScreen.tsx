@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -19,6 +19,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { resetPassword } from "../../services/authService";
 import { Mail, Info } from "lucide-react-native";
 import { colors } from "../../theme/colors";
+import { useLanguage } from "../../contexts/LanguageContext";
+import { t } from "../../localization/i18n";
 
 type AuthStackParamList = {
   Landing: undefined;
@@ -31,16 +33,17 @@ type NavigationProp = NativeStackNavigationProp<AuthStackParamList>;
 
 const ForgotPasswordScreen = () => {
   const navigation = useNavigation<NavigationProp>();
+  const { language } = useLanguage();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
-      if (e.data.action.type === 'POP' || e.data.action.type === 'GO_BACK') {
+    const unsubscribe = navigation.addListener("beforeRemove", (e) => {
+      if (e.data.action.type === "POP" || e.data.action.type === "GO_BACK") {
         e.preventDefault();
         navigation.reset({
           index: 0,
-          routes: [{ name: 'Landing' }],
+          routes: [{ name: "Landing" }],
         });
       }
     });
@@ -48,105 +51,111 @@ const ForgotPasswordScreen = () => {
     return unsubscribe;
   }, [navigation]);
 
+  const emailPlaceholder = useMemo(
+    () => t("forgotEmailPlaceholder"),
+    [language]
+  );
+
   const handleResetPassword = async () => {
     if (!email) {
-      Alert.alert("알림", "이메일을 입력해주세요.");
+      Alert.alert(t("authAlertTitle"), t("forgotMissingEmail"));
       return;
     }
 
     setLoading(true);
     try {
       await resetPassword(email);
-      Alert.alert(
-        "이메일 전송 완료",
-        "비밀번호 재설정 링크가 이메일로 전송되었습니다. 이메일을 확인해주세요.",
-        [
-          {
-            text: "확인",
-            onPress: () => navigation.navigate("Login"),
-          },
-        ]
-      );
+      Alert.alert(t("forgotSuccessTitle"), t("forgotSuccessMessage"), [
+        {
+          text: t("authConfirm"),
+          onPress: () => navigation.navigate("Login"),
+        },
+      ]);
     } catch (error: any) {
-      Alert.alert("오류", error.message);
+      Alert.alert(t("forgotErrorTitle"), error.message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      <LinearGradient
-        colors={[colors.bgTop, colors.bgBottom]}
-        style={StyleSheet.absoluteFill}
-      />
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <LinearGradient
+          colors={[colors.bgTop, colors.bgBottom]}
+          style={StyleSheet.absoluteFill}
+        />
 
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.content}>
-          <View style={styles.header}>
-            <TouchableOpacity
-              onPress={() => {
-                navigation.reset({
-                  index: 0,
-                  routes: [{ name: "Landing" }],
-                });
-              }}
-              style={styles.backButton}
-            >
-              <Text style={styles.backButtonText}>← 돌아가기</Text>
-            </TouchableOpacity>
-            <Text style={styles.title}>비밀번호 찾기</Text>
-            <Text style={styles.subtitle}>
-              가입하신 이메일 주소를 입력하시면{"\n"}비밀번호 재설정 링크를
-              보내드립니다.
-            </Text>
-          </View>
-
-          <View style={styles.form}>
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>이메일</Text>
-              <View style={styles.inputWrapper}>
-                <Mail size={20} color={colors.textTertiary} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="example@email.com"
-                  placeholderTextColor={colors.textTertiary}
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoComplete="email"
-                  editable={!loading}
-                />
-              </View>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.content}>
+            <View style={styles.header}>
+              <TouchableOpacity
+                onPress={() => {
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: "Landing" }],
+                  });
+                }}
+                style={styles.backButton}
+              >
+                <Text style={styles.backButtonText}>{t("authBack")}</Text>
+              </TouchableOpacity>
+              <Text style={styles.title}>{t("forgotTitle")}</Text>
+              <Text style={styles.subtitle}>{t("forgotSubtitle")}</Text>
             </View>
 
-            <TouchableOpacity
-              style={[styles.resetButton, loading && styles.buttonDisabled]}
-              onPress={handleResetPassword}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color={colors.textOnDark} />
-              ) : (
-                <Text style={styles.resetButtonText}>재설정 링크 전송</Text>
-              )}
-            </TouchableOpacity>
-          </View>
+            <View style={styles.form}>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>{t("forgotEmailLabel")}</Text>
+                <View style={styles.inputWrapper}>
+                  <Mail
+                    size={20}
+                    color={colors.textTertiary}
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder={emailPlaceholder}
+                    placeholderTextColor={colors.textTertiary}
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoComplete="email"
+                    editable={!loading}
+                  />
+                </View>
+              </View>
 
-          <View style={styles.infoBox}>
-            <Info size={20} color={colors.textSecondary} style={styles.infoIcon} />
-            <Text style={styles.infoText}>
-              이메일이 도착하지 않는다면 스팸함을 확인해주세요.
-            </Text>
+              <TouchableOpacity
+                style={[styles.resetButton, loading && styles.buttonDisabled]}
+                onPress={handleResetPassword}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color={colors.textOnDark} />
+                ) : (
+                  <Text style={styles.resetButtonText}>
+                    {t("forgotButton")}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.infoBox}>
+              <Info
+                size={20}
+                color={colors.textSecondary}
+                style={styles.infoIcon}
+              />
+              <Text style={styles.infoText}>{t("forgotInfoText")}</Text>
+            </View>
           </View>
-        </View>
-      </TouchableWithoutFeedback>
-    </KeyboardAvoidingView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
