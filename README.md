@@ -228,7 +228,19 @@ src/
 
 ## 스크린샷
 
-> [Coming Soon] 랜딩 페이지, 옷장 관리, AI 추천 화면 스크린샷 추가 예정
+<!-- 방법 2: 테이블 레이아웃 -->
+<table style="border-collapse:collapse; margin:0 auto;">
+  <tr>
+    <td style="padding:6px;"><img src="https://github.com/user-attachments/assets/d1d56589-9bfe-4413-9dce-45226f85f927" alt="Image1" width="250" style="display:block;" /></td>
+    <td style="padding:6px;"><img src="https://github.com/user-attachments/assets/7bb9dd8e-aa9e-402c-8c55-cea9793c1ab9" alt="Image2" width="250" style="display:block;" /></td>
+    <td style="padding:6px;"><img src="https://github.com/user-attachments/assets/c9873d79-520a-4d5f-926d-a527118c604f" alt="Image3" width="250" style="display:block;" /></td>
+  </tr>
+  <tr>
+    <td style="padding:6px;"><img src="https://github.com/user-attachments/assets/199ce328-9367-4a84-9c80-e2754529f3b3" alt="Image4" width="250" style="display:block;" /></td>
+    <td style="padding:6px;"><img src="https://github.com/user-attachments/assets/1ab49642-b238-4ec4-8016-651a382f7487" alt="Image5" width="250" style="display:block;" /></td>
+  </tr>
+</table>
+
 
 ---
 
@@ -236,7 +248,7 @@ src/
 
 **OutfitFlow** - AI가 추천하는 나만의 스타일 ✨
 
-Made with ❤️ using React Native & Google Gemini AI
+Made with using React Native & Google Gemini AI
 
 [🇺🇸 English README](./README_EN.md)
 
