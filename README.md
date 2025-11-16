@@ -236,7 +236,7 @@ src/
 
 **OutfitFlow** - AI가 추천하는 나만의 스타일 ✨
 
-Made with ❤️ using React Native & Google Gemini AI
+Made with using React Native & Google Gemini AI
 
 [🇺🇸 English README](./README_EN.md)
 
