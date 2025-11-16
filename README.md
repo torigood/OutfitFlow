@@ -228,13 +228,19 @@ src/
 
 ## 스크린샷
 
-<div style="display:flex; flex-wrap:wrap; gap:8px; justify-content:center; align-items:center;">
-  <img src="https://github.com/user-attachments/assets/d1d56589-9bfe-4413-9dce-45226f85f927" alt="Image1" style="flex:0 1 30%; max-width:32%; height:auto;" />
-  <img src="https://github.com/user-attachments/assets/7bb9dd8e-aa9e-402c-8c55-cea9793c1ab9" alt="Image2" style="flex:0 1 30%; max-width:32%; height:auto;" />
-  <img src="https://github.com/user-attachments/assets/38153bf3-84b4-4872-9eac-a5001c56b3fa" alt="Image3" style="flex:0 1 30%; max-width:32%; height:auto;" />
-  <img src="https://github.com/user-attachments/assets/199ce328-9367-4a84-9c80-e2754529f3b3" alt="Image4" style="flex:0 1 24%; max-width:24%; height:auto;" />
-  <img src="https://github.com/user-attachments/assets/1ab49642-b238-4ec4-8016-651a382f7487" alt="Image5" style="flex:0 1 24%; max-width:24%; height:auto;" />
-</div>
+<!-- 방법 2: 테이블 레이아웃 -->
+<table style="border-collapse:collapse; margin:0 auto;">
+  <tr>
+    <td style="padding:6px;"><img src="https://github.com/user-attachments/assets/d1d56589-9bfe-4413-9dce-45226f85f927" alt="Image1" width="250" style="display:block;" /></td>
+    <td style="padding:6px;"><img src="https://github.com/user-attachments/assets/7bb9dd8e-aa9e-402c-8c55-cea9793c1ab9" alt="Image2" width="250" style="display:block;" /></td>
+    <td style="padding:6px;"><img src="https://github.com/user-attachments/assets/38153bf3-84b4-4872-9eac-a5001c56b3fa" alt="Image3" width="250" style="display:block;" /></td>
+  </tr>
+  <tr>
+    <td style="padding:6px;"><img src="https://github.com/user-attachments/assets/199ce328-9367-4a84-9c80-e2754529f3b3" alt="Image4" width="250" style="display:block;" /></td>
+    <td style="padding:6px;"><img src="https://github.com/user-attachments/assets/1ab49642-b238-4ec4-8016-651a382f7487" alt="Image5" width="250" style="display:block;" /></td>
+  </tr>
+</table>
+
 
 ---
 
