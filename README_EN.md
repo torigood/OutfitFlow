@@ -222,7 +222,19 @@ src/
 
 ## Screenshots
 
-> [Coming Soon] Add screenshots of Landing Page, Wardrobe Management, AI Recommendations
+<!-- 방법 2: 테이블 레이아웃 -->
+<table style="border-collapse:collapse; margin:0 auto;">
+  <tr>
+    <td style="padding:6px;"><img src="https://github.com/user-attachments/assets/f00071a7-165f-4408-9ac7-c284547fb2d0" alt="Image1" width="250" style="display:block;" /></td>
+    <td style="padding:6px;"><img src="https://github.com/user-attachments/assets/4133b08f-ad78-4488-9679-62106fa30564" alt="Image2" width="250" style="display:block;" /></td>
+    <td style="padding:6px;"><img src="https://github.com/user-attachments/assets/968d432f-f76b-4d90-a665-5a395613f6da" alt="Image3" width="250" style="display:block;" /></td>
+  </tr>
+  <tr>
+    <td style="padding:6px;"><img src="https://github.com/user-attachments/assets/c9873d79-520a-4d5f-926d-a527118c604f"  alt="Image4" width="250" style="display:block;" /></td>
+    <td style="padding:6px;"><img src="https://github.com/user-attachments/assets/05babb4e-6c04-4f04-a6cd-5fb73a2b578f" alt="Image5" width="250" style="display:block;" /></td>
+  </tr>
+</table>
+
 
 ---
 
