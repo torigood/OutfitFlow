@@ -1,0 +1,79 @@
+# OutfitFlow 👗
+
+> Google Gemini와 OpenWeather 데이터를 결합해 옷장과 날씨를 분석하고 맞춤형 코디를 추천하는 React Native 애플리케이션입니다.
+
+## 한눈에 보기
+- Gemini 2.0 Flash 추론과 OpenWeather 정보를 조합해 기온·날씨·TPO를 고려한 코디 카드 생성.
+- Firebase Authentication + Firestore 서브컬렉션으로 사용자별 옷장/설정 데이터 완전 분리.
+- Expo 빌드 파이프라인, Cloudinary 이미지 CDN, 부드러운 내비게이션으로 네이티브급 UX 제공.
+
+## 핵심 기능
+**인증 & 개인화**  
+- Firebase Authentication(이메일·비밀번호, Google)  
+- `users/{userId}/wardrobe` 구조로 사용자별 데이터 격리
+
+**옷장 관리**  
+- 의류 CRUD, 카테고리·계절·브랜드 필터  
+- Cloudinary 업로드 + CDN 썸네일 최적화
+
+**AI 코디 추천**  
+- Gemini 2.0 Flash 프롬프트로 옷장, 드레스코드, 색 조합 분석  
+- OpenWeatherMap 실시간 날씨 연동  
+- 어울림/색감/규율을 점검한 코디 카드 출력
+
+**모바일 경험**  
+- React Native + Expo Router 기반 내비게이션  
+- 라이트/다크 테마와 부드러운 화면 전환  
+- iOS/Android 타깃에 맞춘 번들 최적화
+
+## 기술 스택
+| 영역 | 사용 기술 |
+| --- | --- |
+| App | React Native 0.81, Expo SDK 54, TypeScript |
+| State/UI | React Context API, React Navigation, Expo Linear Gradient |
+| Backend | Firebase Authentication & Firestore |
+| Media | Cloudinary CDN |
+| AI/데이터 | Google Gemini 2.0 Flash, OpenWeatherMap API |
+
+## 빠른 시작
+```bash
+git clone https://github.com/torigood/OutfitFlow.git
+cd OutfitFlow
+npm install
+cp .env.example .env   # Firebase, Cloudinary, Gemini, OpenWeather 키 입력
+npx expo run:ios       # macOS + iOS 시뮬레이터 필요
+npx expo run:android   # Android 에뮬레이터 또는 실기기
+```
+
+## 필수 API 키
+- Firebase Console: Authentication + Firestore
+- Cloudinary Dashboard: Cloud name, unsigned preset
+- Google AI Studio: Gemini API Key
+- OpenWeatherMap: Current Weather API Key
+
+## 폴더 구조
+```
+src/
+├─ config/        # Firebase, Cloudinary 설정
+├─ contexts/      # AuthContext 등 글로벌 상태
+├─ screens/       # Auth, Wardrobe, AIRecommend, Settings
+├─ services/      # authService, wardrobeService, fashionAIService, weatherService
+└─ types/         # 공용 타입 정의
+```
+
+## 스크린샷
+<table style="border-collapse:collapse; margin:0 auto;">
+  <tr>
+    <td style="padding:6px;"><img src="https://github.com/user-attachments/assets/d1d56589-9bfe-4413-9dce-45226f85f927" alt="Image1" width="240" style="display:block;" /></td>
+    <td style="padding:6px;"><img src="https://github.com/user-attachments/assets/7bb9dd8e-aa9e-402c-8c55-cea9793c1ab9" alt="Image2" width="240" style="display:block;" /></td>
+    <td style="padding:6px;"><img src="https://github.com/user-attachments/assets/c9873d79-520a-4d5f-926d-a527118c604f" alt="Image3" width="240" style="display:block;" /></td>
+  </tr>
+  <tr>
+    <td style="padding:6px;"><img src="https://github.com/user-attachments/assets/199ce328-9367-4a84-9c80-e2754529f3b3" alt="Image4" width="240" style="display:block;" /></td>
+    <td style="padding:6px;"><img src="https://github.com/user-attachments/assets/1ab49642-b238-4ec4-8016-651a382f7487" alt="Image5" width="240" style="display:block;" /></td>
+  </tr>
+</table>
+
+## 문의
+- Issue 또는 Discussion: [GitHub Issues](https://github.com/torigood/OutfitFlow/issues)
+- 영어 버전은 [`README.md`](./README.md)를 참고하세요.
