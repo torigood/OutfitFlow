@@ -1,5 +1,5 @@
 // src/screens/auth/LandingScreen.tsx
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -8,13 +8,16 @@ import {
   Animated,
   Platform,
   Pressable,
+  TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { Sparkles, Cloud, Shirt, ArrowRight } from "lucide-react-native";
+import { Sparkles, Cloud, Shirt, ArrowRight, Globe } from "lucide-react-native";
 import { colors } from "../../theme/colors";
+import { useLanguage } from "../../contexts/LanguageContext";
+import { t } from "../../localization/i18n";
 
 type AuthStackParamList = {
   Landing: undefined;
@@ -26,28 +29,36 @@ type NavigationProp = NativeStackNavigationProp<AuthStackParamList>;
 
 export default function LandingScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const { language, setLanguage } = useLanguage();
 
   // mobile-only fixed sizes
   const heroTitleSize = 44;
   const heroSubtitleSize = 18;
 
-  const featuresData = [
-    {
-      Icon: Sparkles,
-      title: "AI 코디 추천",
-      description: "날씨와 TPO에 맞는\n완벽한 옷차림을 추천합니다",
-    },
-    {
-      Icon: Cloud,
-      title: "실시간 날씨 기반",
-      description: "현재 날씨를 고려한\n스마트한 옷 추천",
-    },
-    {
-      Icon: Shirt,
-      title: "스마트 옷장 관리",
-      description: "내 옷을 쉽게 보관하고\n효율적으로 활용하세요",
-    },
-  ];
+  const featuresData = useMemo(
+    () => [
+      {
+        Icon: Sparkles,
+        title: t("landingFeature1Title"),
+        description: t("landingFeature1Description"),
+      },
+      {
+        Icon: Cloud,
+        title: t("landingFeature2Title"),
+        description: t("landingFeature2Description"),
+      },
+      {
+        Icon: Shirt,
+        title: t("landingFeature3Title"),
+        description: t("landingFeature3Description"),
+      },
+    ],
+    [language]
+  );
+
+  const toggleLanguage = () => {
+    setLanguage(language === "en" ? "ko" : "en");
+  };
 
   const CARD_HEIGHT = 320; // 필요하면 조절
   const CARD_SPACING = 16;
@@ -73,6 +84,11 @@ export default function LandingScreen() {
       setCardIndex(next);
     });
   };
+
+  useEffect(() => {
+    const timer = setInterval(onCardPress, 5000);
+    return () => clearInterval(timer);
+  }, [cardIndex, featuresData.length]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -104,7 +120,7 @@ export default function LandingScreen() {
 
           <Pressable onPress={() => navigation.navigate("Login")}>
             <View style={styles.loginButton}>
-              <Text style={styles.loginText}>로그인</Text>
+              <Text style={styles.loginText}>{t("landingLogin")}</Text>
             </View>
           </Pressable>
         </View>
@@ -115,8 +131,27 @@ export default function LandingScreen() {
             OutfitFlow
           </Text>
           <Text style={[styles.heroSubtitle, { fontSize: heroSubtitleSize }]}>
-            AI가 추천하는 나만의 스타일
+            {t("landingHeroSubtitle")}
           </Text>
+          <View style={styles.heroLanguage}>
+            <View style={styles.languageContainer}>
+              <Pressable
+                onPress={toggleLanguage}
+                style={({ pressed }) => [
+                  styles.languageButton,
+                  pressed && styles.languageButtonPressed,
+                ]}
+              >
+                <Globe size={16} color={colors.textOnDark} />
+                <View style={styles.languageTexts}>
+                  <Text style={styles.languageLabel}>{t("lang")}</Text>
+                  <Text style={styles.languageCurrent}>
+                    {language === "en" ? "English" : "한국어"}
+                  </Text>
+                </View>
+              </Pressable>
+            </View>
+          </View>
 
           {/* Feature cards */}
           <View style={[styles.cardsContainer, styles.cardsCol]}>
@@ -184,7 +219,7 @@ export default function LandingScreen() {
               end={{ x: 1, y: 0 }}
               style={styles.cta}
             >
-              <Text style={styles.ctaText}>시작하기</Text>
+              <Text style={styles.ctaText}>{t("landingCTA")}</Text>
               <ArrowRight
                 size={18}
                 color={colors.textOnDark}
@@ -192,12 +227,21 @@ export default function LandingScreen() {
               />
             </LinearGradient>
           </Pressable>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("Login")}
+            style={styles.loginPrompt}
+          >
+            <Text style={styles.loginPromptText}>
+              {t("landingFooterLoginPrompt")}{" "}
+              <Text style={styles.loginPromptLink}>{t("landingLogin")}</Text>
+            </Text>
+          </TouchableOpacity>
         </View>
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>이미 계정이 있으신가요?</Text>
+          <Text style={styles.footerText}>{t("landingFooterText")}</Text>
           <Pressable onPress={() => navigation.navigate("Login")}>
-            <Text style={styles.footerLink}>로그인하기 →</Text>
+            <Text style={styles.footerLink}>{t("landingFooterLink")}</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -234,6 +278,17 @@ const styles = StyleSheet.create({
     color: colors.textOnDark,
   },
 
+  heroLanguage: {
+    width: "100%",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  languageContainer: {
+    position: "relative",
+    width: 170,
+    alignContent: "center",
+    paddingLeft: 11,
+  },
   loginButton: {
     paddingHorizontal: 20,
     paddingVertical: 8,
@@ -241,6 +296,45 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   loginText: { color: colors.textOnLight, fontSize: 16, fontWeight: "500" },
+  languageButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.brandLight,
+    width: 145,
+    paddingLeft: 26,
+  },
+  languageButtonPressed: {
+    transform: [{ scale: 0.97 }],
+    justifyContent: "center",
+    paddingRight: 30,
+  },
+  languageText: {
+    color: colors.textOnDark,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  languageTexts: {
+    flexDirection: "column",
+    gap: 2,
+  },
+  languageLabel: {
+    fontSize: 10,
+    color: colors.textOnDark,
+    opacity: 0.8,
+    textAlign: "center",
+    alignItems: "center",
+  },
+  languageCurrent: {
+    fontSize: 14,
+    color: colors.textOnDark,
+    fontWeight: "600",
+    textAlign: "center",
+  },
 
   heroWrap: {
     zIndex: 10,
@@ -328,6 +422,18 @@ const styles = StyleSheet.create({
     }),
   },
   ctaText: { color: colors.textOnDark, fontWeight: "800", fontSize: 16 },
+  loginPrompt: {
+    marginTop: 12,
+  },
+  loginPromptText: {
+    fontSize: 14,
+    color: colors.textOnDark,
+    textAlign: "center",
+  },
+  loginPromptLink: {
+    color: colors.brand,
+    fontWeight: "700",
+  },
 
   footer: {
     alignItems: "center",

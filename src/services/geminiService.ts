@@ -54,7 +54,7 @@ const imageUrlToBase64Web = async (imageUrl: string): Promise<string> => {
       reader.onloadend = () => {
         const base64 = reader.result as string;
         // "data:image/jpeg;base64," 부분 제거
-        const base64Data = base64.split(',')[1];
+        const base64Data = base64.split(",")[1];
         resolve(base64Data);
       };
       reader.onerror = reject;
@@ -112,7 +112,7 @@ const imageUrlToBase64Native = async (imageUrl: string): Promise<string> => {
  */
 export const imageUrlToBase64 = async (imageUrl: string): Promise<string> => {
   // 플랫폼별로 다른 함수 사용
-  if (Platform.OS === 'web') {
+  if (Platform.OS === "web") {
     return imageUrlToBase64Web(imageUrl);
   } else {
     return imageUrlToBase64Native(imageUrl);

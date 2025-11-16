@@ -7,7 +7,7 @@ import { colors } from "../theme/colors";
 
 export default function FeedScreen() {
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Empty State */}
         <View style={styles.section}>
@@ -22,7 +22,7 @@ export default function FeedScreen() {
           </SoftCard>
         </View>
 
-        {/* Placeholder Cards */}
+        {/* Placeholde r Cards */}
         <View style={styles.section}>
           <View style={styles.feedCard}>
             <View style={styles.cardHeader}>

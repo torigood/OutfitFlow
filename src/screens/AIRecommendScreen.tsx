@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -18,7 +18,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { X, Search } from "lucide-react-native";
+import type { ComponentProps } from "react";
+import { X, Search, Heart } from "lucide-react-native";
 import { useAuth } from "../contexts/AuthContext";
 import { getClothingItems } from "../services/wardrobeService";
 import {
@@ -30,6 +31,14 @@ import { ClothingItem } from "../types/wardrobe";
 import { OutfitAnalysis, FashionStyle, WeatherInfo } from "../types/ai";
 import { colors } from "../theme/colors";
 import { SoftSheet } from "../components/SoftSheet";
+import {
+  saveAiOutfit,
+  findSavedOutfitByItems,
+} from "../services/savedOutfitService";
+import Toast from "react-native-toast-message";
+import { useLanguage } from "../contexts/LanguageContext";
+import { t, tCategory, tSeason, tStyle } from "../localization/i18n";
+import type { CategoryKey, SeasonKey, StyleKey } from "../localization/i18n";
 
 const STYLES: FashionStyle[] = [
   "캐주얼",
@@ -43,13 +52,135 @@ const STYLES: FashionStyle[] = [
   "기타",
 ];
 
-const CATEGORIES = ["전체", "상의", "하의", "아우터", "신발", "악세사리"];
-const SEASONS = ["전체", "봄", "여름", "가을", "겨울"];
-const DEFAULT_CATEGORY = CATEGORIES[0];
-const DEFAULT_SEASON = SEASONS[0];
+const STYLE_LABEL_KEYS: Record<FashionStyle, StyleKey> = {
+  캐주얼: "casual",
+  미니멀: "minimal",
+  스트릿: "street",
+  포멀: "formal",
+  스포티: "sporty",
+  빈티지: "vintage",
+  페미닌: "feminine",
+  댄디: "dandy",
+  기타: "etc",
+};
+
+const CATEGORY_LABEL_MAP: Record<string, CategoryKey> = {
+  전체: "all",
+  all: "all",
+  상의: "tops",
+  tops: "tops",
+  하의: "bottoms",
+  bottoms: "bottoms",
+  아우터: "outer",
+  outer: "outer",
+  outerwear: "outer",
+  신발: "shoes",
+  shoes: "shoes",
+  악세서리: "accessories",
+  악세사리: "accessories",
+  accessories: "accessories",
+};
+
+type WeatherConditionKey =
+  | "weatherConditionClear"
+  | "weatherConditionCloudy"
+  | "weatherConditionRain"
+  | "weatherConditionSnow";
+type IoniconName = ComponentProps<typeof Ionicons>["name"];
+
+const getWeatherConditionKey = (condition: string): WeatherConditionKey => {
+  if (!condition) return "weatherConditionCloudy";
+  const normalized = condition.toLowerCase();
+  if (
+    condition.includes("맑") ||
+    normalized.includes("clear") ||
+    normalized.includes("sun")
+  )
+    return "weatherConditionClear";
+  if (
+    condition.includes("흐") ||
+    normalized.includes("cloud") ||
+    normalized.includes("overcast")
+  )
+    return "weatherConditionCloudy";
+  if (condition.includes("비") || normalized.includes("rain"))
+    return "weatherConditionRain";
+  if (condition.includes("눈") || normalized.includes("snow"))
+    return "weatherConditionSnow";
+  return "weatherConditionCloudy";
+};
+
+const getWeatherIconName = (conditionKey: WeatherConditionKey): IoniconName => {
+  switch (conditionKey) {
+    case "weatherConditionClear":
+      return "sunny";
+    case "weatherConditionRain":
+      return "rainy";
+    case "weatherConditionSnow":
+      return "snow";
+    default:
+      return "cloudy";
+  }
+};
+
+const SEASON_LABEL_MAP: Record<string, SeasonKey> = {
+  전체: "all",
+  all: "all",
+  봄: "spring",
+  spring: "spring",
+  여름: "summer",
+  summer: "summer",
+  가을: "autumn",
+  autumn: "autumn",
+  fall: "autumn",
+  겨울: "winter",
+  winter: "winter",
+};
+const CATEGORY_KEYS: CategoryKey[] = [
+  "all",
+  "tops",
+  "bottoms",
+  "outer",
+  "shoes",
+  "accessories",
+];
+const SEASON_FILTER_OPTIONS: SeasonKey[] = [
+  "all",
+  "spring",
+  "summer",
+  "autumn",
+  "winter",
+];
+const DEFAULT_CATEGORY = CATEGORY_KEYS[0];
+const DEFAULT_SEASON = SEASON_FILTER_OPTIONS[0];
+const normalizeCategoryKey = (value?: string): CategoryKey | undefined => {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  return (
+    CATEGORY_LABEL_MAP[trimmed] ?? CATEGORY_LABEL_MAP[trimmed.toLowerCase()]
+  );
+};
+const normalizeSeasonKey = (value?: string): SeasonKey | undefined => {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  return SEASON_LABEL_MAP[trimmed] ?? SEASON_LABEL_MAP[trimmed.toLowerCase()];
+};
+const extractSeasonKeys = (value?: string): SeasonKey[] => {
+  if (!value) return [];
+  return value
+    .split(",")
+    .map((season) => normalizeSeasonKey(season.trim()))
+    .filter((season): season is SeasonKey => Boolean(season));
+};
+
+const getStyleLabel = (style: FashionStyle) => {
+  const key = STYLE_LABEL_KEYS[style];
+  return key ? tStyle(key) : style;
+};
 
 export default function AIRecommendScreen() {
   const { user } = useAuth();
+  const { language } = useLanguage();
   const CARD_WIDTH = Dimensions.get("window").width - 48;
   const scrollViewRef = React.useRef<ScrollView>(null);
   const isRequestingRef = React.useRef(false); // API 요청 중 플래그
@@ -65,18 +196,32 @@ export default function AIRecommendScreen() {
 
   // 날씨 정보
   const [weather, setWeather] = useState<WeatherInfo | null>(null);
+  const weatherCardData = useMemo(() => {
+    if (!weather) return null;
+    const conditionKey = getWeatherConditionKey(weather.condition);
+    return {
+      conditionKey,
+      iconName: getWeatherIconName(conditionKey),
+    };
+  }, [weather]);
 
   // 새 아이템 추천 (같이 있으면 좋을 아이템)
   const [suggestedItems, setSuggestedItems] = useState<
     Array<{ category: string; item: string; reason: string }>
   >([]);
 
+  // AI 추천 저장
+  const [isSaving, setIsSaving] = useState(false);
+  const [savedOutfitId, setSavedOutfitId] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
   // 바텀시트 상태
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState(DEFAULT_CATEGORY);
+  const [selectedCategory, setSelectedCategory] =
+    useState<CategoryKey>(DEFAULT_CATEGORY);
   const [selectedSeasonFilter, setSelectedSeasonFilter] =
-    useState(DEFAULT_SEASON);
+    useState<SeasonKey>(DEFAULT_SEASON);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   const [showSeasonFilterDropdown, setShowSeasonFilterDropdown] =
@@ -84,6 +229,13 @@ export default function AIRecommendScreen() {
   const isSeasonFilterActive =
     showSeasonFilterDropdown || selectedSeasonFilter !== DEFAULT_SEASON;
   const filterIconColor = isSeasonFilterActive ? colors.white : colors.white;
+  const analysisItemsSignature = useMemo(() => {
+    if (!analysis?.selectedItems?.length) {
+      return "";
+    }
+    const ids = analysis.selectedItems.map((item) => item.id);
+    return [...ids].sort().join("__");
+  }, [analysis]);
 
   useEffect(() => {
     if (!isSheetOpen && showSeasonFilterDropdown) {
@@ -96,6 +248,40 @@ export default function AIRecommendScreen() {
     loadClothes();
     loadWeather();
   }, []);
+
+  useEffect(() => {
+    if (
+      !user?.uid ||
+      !analysis?.selectedItems?.length ||
+      !analysisItemsSignature
+    ) {
+      setSavedOutfitId(null);
+      return;
+    }
+
+    let isMounted = true;
+    (async () => {
+      try {
+        const existing = await findSavedOutfitByItems(
+          user.uid,
+          analysis.selectedItems.map((item) => item.id)
+        );
+        if (isMounted) {
+          setSavedOutfitId(existing?.id ?? null);
+          setSaveError(null);
+        }
+      } catch (error: any) {
+        console.error("saved outfit lookup failed", error);
+        if (isMounted) {
+          setSaveError(error?.message ?? "Unknown error");
+        }
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.uid, analysisItemsSignature, analysis]);
 
   const loadClothes = async () => {
     if (!user?.uid) return;
@@ -120,18 +306,16 @@ export default function AIRecommendScreen() {
 
   // 선택 규칙 검사
   const canSelectItem = (item: ClothingItem): boolean => {
-    const category = item.category;
+    const categoryKey = normalizeCategoryKey(item.category);
     const currentCategoryItems = selectedItems.filter(
-      (i) => i.category === category
+      (i) => normalizeCategoryKey(i.category) === categoryKey
     );
 
-    // 악세사리는 무제한
-    if (category === "악세사리") {
+    if (!categoryKey || categoryKey === "accessories") {
       return true;
     }
 
-    // 상의, 하의, 아우터, 신발은 각각 1개씩만
-    if (["상의", "하의", "아우터", "신발"].includes(category)) {
+    if (["tops", "bottoms", "outer", "shoes"].includes(categoryKey)) {
       return currentCategoryItems.length === 0;
     }
 
@@ -160,6 +344,9 @@ export default function AIRecommendScreen() {
 
   // AI 스마트 추천 받기
   const handleGetRecommendation = async () => {
+    setAnalysis(null);
+    setSavedOutfitId(null);
+    setSaveError(null);
     // 이중 체크: ref와 state 모두 확인
     if (isRequestingRef.current || isLoading) {
       console.warn("⚠️ 중복 호출 차단! 이미 AI 추천을 불러오는 중입니다.");
@@ -167,7 +354,10 @@ export default function AIRecommendScreen() {
     }
 
     if (clothes.length < 2) {
-      alert("옷장에 최소 2개 이상의 옷이 필요합니다!");
+      Toast.show({
+        type: "info",
+        text1: t("needMoreWardrobeItems"),
+      });
       return;
     }
 
@@ -211,11 +401,42 @@ export default function AIRecommendScreen() {
       console.log("종료 시간:", new Date().toISOString());
     } catch (error: any) {
       console.error("=== AI 분석 오류 ===", error);
+      if (error instanceof Error && error.message.includes("아이템 부족")) {
+        Toast.show({
+          type: "info",
+          text1: t("needMoreWardrobeItems"),
+        });
+        return;
+      }
       alert(error instanceof Error ? error.message : "AI 분석에 실패했습니다.");
     } finally {
       setIsLoading(false);
       isRequestingRef.current = false; // 플래그 해제
       console.log("로딩 상태 해제");
+    }
+  };
+
+  const handleSaveOutfit = async () => {
+    if (!user?.uid || !analysis) return;
+    if (savedOutfitId) {
+      Toast.show({ type: "info", text1: t("saveOutfitDuplicate") });
+      return;
+    }
+    try {
+      setIsSaving(true);
+      setSaveError(null);
+      const saved = await saveAiOutfit(user.uid, analysis, {
+        weather,
+        preferredStyle: selectedStyle,
+      });
+      setSavedOutfitId(saved.id);
+      Toast.show({ type: "success", text1: t("saveOutfitSuccess") });
+    } catch (error: any) {
+      console.error("save outfit failed", error);
+      setSaveError(error?.message ?? "Unknown error");
+      Toast.show({ type: "error", text1: t("saveOutfitError") });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -225,6 +446,8 @@ export default function AIRecommendScreen() {
     setSuggestedItems([]);
     setSelectedItems([]);
     setCurrentImageIndex(0);
+    setSavedOutfitId(null);
+    setSaveError(null);
   };
 
   // 이전 이미지로 이동
@@ -270,21 +493,24 @@ export default function AIRecommendScreen() {
 
   // 필터링된 옷 목록
   const filteredClothes = clothes.filter((item) => {
+    const itemCategoryKey = normalizeCategoryKey(item.category);
     const matchCategory =
-      selectedCategory === "전체" || item.category === selectedCategory;
+      selectedCategory === "all" || itemCategoryKey === selectedCategory;
     const matchSearch =
       searchQuery === "" ||
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.brand.toLowerCase().includes(searchQuery.toLowerCase());
     const matchSeason =
-      selectedSeasonFilter === "전체" ||
-      (item as any).seasons?.includes(selectedSeasonFilter);
+      selectedSeasonFilter === "all" ||
+      extractSeasonKeys((item as any).seasons).includes(selectedSeasonFilter);
     return matchCategory && matchSearch && matchSeason;
   });
 
   // 카테고리별 선택 개수
-  const getCategoryCount = (category: string) => {
-    return selectedItems.filter((i) => i.category === category).length;
+  const getCategoryCount = (category: CategoryKey) => {
+    return selectedItems.filter(
+      (i) => normalizeCategoryKey(i.category) === category
+    ).length;
   };
 
   return (
@@ -301,27 +527,15 @@ export default function AIRecommendScreen() {
       >
         {/* 헤더 */}
         <View style={styles.header}>
-          <Text style={styles.title}>AI 코디 추천</Text>
-          <Text style={styles.subtitle}>
-            날씨와 스타일에 맞는 완벽한 조합을 찾아보세요
-          </Text>
+          <Text style={styles.title}>{t("AITitle")}</Text>
+          <Text style={styles.subtitle}>{t("AISubtitle")}</Text>
 
           {/* 날씨 정보 */}
-          {weather && (
+          {weather && weatherCardData && (
             <View style={styles.weatherCard}>
               <View style={styles.weatherLeft}>
                 <Ionicons
-                  name={
-                    weather.condition === "맑음"
-                      ? "sunny"
-                      : weather.condition === "흐림"
-                      ? "cloudy"
-                      : weather.condition.includes("비")
-                      ? "rainy"
-                      : weather.condition.includes("눈")
-                      ? "snow"
-                      : "cloud"
-                  }
+                  name={weatherCardData.iconName}
                   size={32}
                   color="#000"
                 />
@@ -330,16 +544,16 @@ export default function AIRecommendScreen() {
                     {weather.temperature}°C
                   </Text>
                   <Text style={styles.weatherCondition}>
-                    {weather.condition}
+                    {t(weatherCardData.conditionKey)}
                   </Text>
                 </View>
               </View>
               <View style={styles.weatherRight}>
                 <Text style={styles.weatherDetail}>
-                  체감 {weather.feelsLike}°C
+                  {t("weatherFeelsLike")} {weather.feelsLike}°C
                 </Text>
                 <Text style={styles.weatherDetail}>
-                  습도 {weather.humidity}%
+                  {t("weatherHumidity")} {weather.humidity}%
                 </Text>
               </View>
             </View>
@@ -348,10 +562,8 @@ export default function AIRecommendScreen() {
 
         {/* 옷 선택 영역 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>옷 선택하기</Text>
-          <Text style={styles.selectionGuide}>
-            상의/하의/아우터/신발은 각 1개씩, 악세사리는 제한 없음
-          </Text>
+          <Text style={styles.sectionTitle}>{t("chostItemTitle")}</Text>
+          <Text style={styles.selectionGuide}>{t("selectInstruc")}</Text>
 
           {/* 선택된 아이템 표시 */}
           {selectedItems.length > 0 && (
@@ -386,14 +598,15 @@ export default function AIRecommendScreen() {
             onPress={() => setIsSheetOpen(true)}
           >
             <Text style={styles.selectButtonText}>
-              옷장에서 선택하기 ({selectedItems.length}개 선택됨)
+              {t("wardrobeChooseButton")} ({selectedItems.length}
+              {t("numberSelected")})
             </Text>
           </TouchableOpacity>
         </View>
 
         {/* 원하는 스타일 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>원하는 스타일</Text>
+          <Text style={styles.sectionTitle}>{t("wantStyle")}</Text>
           <View style={styles.styleContainer}>
             {STYLES.map((style) => (
               <TouchableOpacity
@@ -410,7 +623,7 @@ export default function AIRecommendScreen() {
                     selectedStyle === style && styles.styleTextActive,
                   ]}
                 >
-                  {style}
+                  {getStyleLabel(style)}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -438,7 +651,7 @@ export default function AIRecommendScreen() {
           ) : (
             <>
               <Ionicons name="sparkles" size={20} color="#fff" />
-              <Text style={styles.recommendButtonText}>AI 추천 받기</Text>
+              <Text style={styles.recommendButtonText}>{t("getAIRec")}</Text>
             </>
           )}
         </TouchableOpacity>
@@ -492,6 +705,29 @@ export default function AIRecommendScreen() {
                 매칭도 {Math.round((analysis.compatibility / 10) * 100)}%
               </Text>
             </View>
+
+            <TouchableOpacity
+              style={[
+                styles.saveButton,
+                savedOutfitId && styles.saveButtonDisabled,
+              ]}
+              onPress={handleSaveOutfit}
+              disabled={isSaving || !!savedOutfitId}
+            >
+              <Heart
+                size={18}
+                color={savedOutfitId ? colors.brand : colors.white}
+                fill={savedOutfitId ? colors.brand : "transparent"}
+              />
+              <Text style={styles.saveButtonText}>
+                {savedOutfitId
+                  ? t("saved")
+                  : isSaving
+                  ? t("saving")
+                  : t("saveOutfit")}
+              </Text>
+            </TouchableOpacity>
+            {saveError && <Text style={styles.saveErrorText}>{saveError}</Text>}
 
             {/* 아이템 갤러리 (스와이프) */}
             <View style={styles.galleryContainer}>
@@ -572,14 +808,14 @@ export default function AIRecommendScreen() {
               </View>
 
               <View style={styles.adviceSection}>
-                <Text style={styles.adviceTitle}>AI 조언</Text>
+                <Text style={styles.adviceTitle}>{t("AIAdvise")}</Text>
                 <Text style={styles.adviceText}>{analysis.advice}</Text>
               </View>
 
               {/* 개선 제안 */}
               {analysis.suggestions.length > 0 && (
                 <View style={styles.suggestionsSection}>
-                  <Text style={styles.adviceTitle}>개선 제안</Text>
+                  <Text style={styles.adviceTitle}>{t("suggestOption")}</Text>
                   {analysis.suggestions.map((suggestion, idx) => (
                     <View key={idx} style={styles.suggestionItem}>
                       <Text style={styles.suggestionBullet}>•</Text>
@@ -592,7 +828,7 @@ export default function AIRecommendScreen() {
               {/* 보색 제안 */}
               {analysis.colorHarmony.complementaryColors.length > 0 && (
                 <View style={styles.colorSection}>
-                  <Text style={styles.adviceTitle}>추천 보색</Text>
+                  <Text style={styles.adviceTitle}>{t("colorRec")}</Text>
                   <View style={styles.colorList}>
                     {analysis.colorHarmony.complementaryColors.map(
                       (color, idx) => (
@@ -609,9 +845,9 @@ export default function AIRecommendScreen() {
             {/* 같이 있으면 좋을 아이템 */}
             {suggestedItems.length > 0 && (
               <View style={styles.suggestedItemsSection}>
-                <Text style={styles.sectionTitle}>같이 있으면 좋을 아이템</Text>
+                <Text style={styles.sectionTitle}>{t("recNewItem")}</Text>
                 <Text style={styles.suggestedItemsSubtitle}>
-                  이 코디에 추가하면 더 완성도가 높아집니다
+                  {t("recNewItemTitle")}
                 </Text>
                 {suggestedItems.map((item, index) => (
                   <View key={index} style={styles.suggestedItemCard}>
@@ -640,7 +876,7 @@ export default function AIRecommendScreen() {
       <SoftSheet open={isSheetOpen} onClose={() => setIsSheetOpen(false)}>
         <View style={styles.sheetContainer}>
           <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>옷 선택하기</Text>
+            <Text style={styles.sheetTitle}>{t("selectItems")}</Text>
             <TouchableOpacity onPress={() => setIsSheetOpen(false)}>
               <X size={24} color={colors.textOnLight} />
             </TouchableOpacity>
@@ -656,7 +892,7 @@ export default function AIRecommendScreen() {
             <Search size={20} color={colors.textTertiary} />
             <TextInput
               style={styles.searchInput}
-              placeholder="아이템 검색..."
+              placeholder={t("searchItems")}
               placeholderTextColor={colors.textTertiary}
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -667,11 +903,12 @@ export default function AIRecommendScreen() {
 
           {/* 카테고리 필터 */}
           <ScrollView
+            key={language}
             horizontal
             showsHorizontalScrollIndicator={false}
             style={styles.categoryScroll}
           >
-            {CATEGORIES.map((category) => (
+            {CATEGORY_KEYS.map((category) => (
               <TouchableOpacity
                 key={category}
                 style={[
@@ -687,10 +924,10 @@ export default function AIRecommendScreen() {
                       styles.categoryChipTextActive,
                   ]}
                 >
-                  {category}
-                  {category !== "전체" &&
+                  {tCategory(category)}
+                  {category !== "all" &&
                     ` (${getCategoryCount(category)}${
-                      category === "악세사리" ? "" : "/1"
+                      category === "accessories" ? "" : "/1"
                     })`}
                 </Text>
               </TouchableOpacity>
@@ -715,7 +952,7 @@ export default function AIRecommendScreen() {
                   isSeasonFilterActive && styles.filterTextActive,
                 ]}
               >
-                {selectedSeasonFilter}
+                {tSeason(selectedSeasonFilter)}
               </Text>
               <Ionicons
                 name={showSeasonFilterDropdown ? "chevron-up" : "chevron-down"}
@@ -725,7 +962,7 @@ export default function AIRecommendScreen() {
             </TouchableOpacity>
             {showSeasonFilterDropdown && (
               <View style={styles.seasonFilterDropdown}>
-                {SEASONS.map((season) => {
+                {SEASON_FILTER_OPTIONS.map((season) => {
                   const isSelected = selectedSeasonFilter === season;
                   return (
                     <Pressable
@@ -747,7 +984,7 @@ export default function AIRecommendScreen() {
                           isSelected && styles.seasonFilterTextActive,
                         ]}
                       >
-                        {season}
+                        {tSeason(season)}
                       </Text>
                       {isSelected && (
                         <Ionicons
@@ -805,7 +1042,7 @@ export default function AIRecommendScreen() {
 
             {filteredClothes.length === 0 && (
               <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>옷이 없습니다</Text>
+                <Text style={styles.emptyText}>{t("emeptyItems")}</Text>
               </View>
             )}
           </ScrollView>
@@ -816,7 +1053,8 @@ export default function AIRecommendScreen() {
             onPress={() => setIsSheetOpen(false)}
           >
             <Text style={styles.confirmButtonText}>
-              확인 ({selectedItems.length}개 선택됨)
+              {t("confirmDelete")} ({selectedItems.length}
+              {t("numberSelected")})
             </Text>
           </TouchableOpacity>
         </View>
@@ -1017,6 +1255,35 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 12,
     fontWeight: "600",
+  },
+  analysisHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  saveButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: colors.brand,
+    borderRadius: 999,
+  },
+  saveButtonDisabled: {
+    backgroundColor: colors.softCard,
+    borderWidth: 1,
+    borderColor: colors.brand,
+  },
+  saveButtonText: {
+    color: colors.white,
+    fontWeight: "600",
+  },
+  saveErrorText: {
+    marginTop: 8,
+    fontSize: 12,
+    color: colors.error ?? "#ff4d4f",
   },
   itemCard: {
     // width는 인라인 스타일로 동적 설정

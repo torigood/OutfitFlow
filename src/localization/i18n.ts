@@ -1,10 +1,12 @@
-﻿import * as Localization from "expo-localization";
+import { recommendNewItems } from "@/services/fashionAIService";
+import * as Localization from "expo-localization";
 import { I18n } from "i18n-js";
 
 export type SupportedLanguage = "en" | "ko";
 
 const translations = {
   en: {
+    lang: "Language",
     //홈 페이지
     quickActions: "Quick Actions",
     aiRecommend: "Recommend",
@@ -15,7 +17,7 @@ const translations = {
     noRecommendations: "No recommendations yet",
     stats: "Statistics",
     ownedItems: "Owned Items",
-    outfits: "Outfits",
+    outfits: "Saved Outfits",
     //세팅 페이지
     accountInfo: "Account Info",
     name: "Name",
@@ -30,10 +32,10 @@ const translations = {
     selectLanguage: "Choose your language",
     //탭 바
     homeTab: "Home",
-    wardrobeTab: "Wardrobe",
+    wardrobeTab: "Items",
     aiTab: "AI",
-    communityTab: "Community",
-    shoppingTab: "Shopping",
+    communityTab: "Feeds",
+    shoppingTab: "Shops",
     settingsTab: "Settings",
     //옷장 페이지
     permissionTitle: "Permission Required",
@@ -58,6 +60,7 @@ const translations = {
     editItem: "Edit Item",
     AddNewItem: "Add New Item",
     searchItems: "Search items...",
+
     categories: {
       all: "All",
       tops: "Tops",
@@ -73,6 +76,17 @@ const translations = {
       autumn: "Autumn",
       winter: "Winter",
     },
+    styles: {
+      casual: "Casual",
+      formal: "Formal",
+      street: "Street",
+      vintage: "Vintage",
+      minimal: "Minimal",
+      sporty: "Sporty",
+      feminine: "Feminine",
+      dandy: "Dandy",
+      etc: "Others",
+    },
     itemDetail: "Item Details",
     category: "Category",
     season: "Seasons",
@@ -87,8 +101,97 @@ const translations = {
     dragAnddrop: "or drag and drop",
     enterErrorTitle: "Emter Errpr",
     enterError: "Image, Item name, Category are requried.",
+    savedOutfits: "Saved Outfits",
+    saveOutfit: "Save",
+    saved: "Saved",
+    saving: "Saving...",
+    saveOutfitSuccess: "Saved recommended outfit!",
+    saveOutfitDuplicate: "This outfit is already saved.",
+    saveOutfitError: "Couldn't save this outfit. Please try again.",
+    noSavedOutfits: "No saved outfits yet.",
+    compatibilityScore: "Compatibility {score}/10",
+    needMoreWardrobeItems:
+      "Add at least two wardrobe items to use AI recommendations.",
+    //AI 추천 페이지
+    AITitle: "AI Recommendations",
+    AISubtitle: "Find the perfect outift for the weather and style",
+    weatherFeelsLike: "Feels like ",
+    weatherHumidity: "Humidity ",
+    weatherConditionClear: "Clear",
+    weatherConditionCloudy: "Cloudy",
+    weatherConditionRain: "Rainy",
+    weatherConditionSnow: "Snowy",
+    selectItems: "Select items",
+    emeptyItems: "No clothes here",
+    numberSelected: " Selected",
+    recNewItem: "Suggested items to wear with this",
+    recNewItemTitle: "Complete the outfit with this piece",
+    colorRec: "Color Pairings",
+    suggestOption: "Suggestions",
+    AIAdvise: "AI Advise",
+    getAIRec: "Get AI Reccomendation",
+    authBack: "← Back",
+    authAlertTitle: "Notice",
+    authFooterPrefix: "By continuing you agree to OutfitFlow's",
+    authFooterSuffix: ".",
+    legalTerms: "Terms of Use",
+    legalPrivacy: "Privacy Policy",
+    commonAnd: "and",
+    authDividerText: "or",
+    authGoogleButton: "Continue with Google",
+    loginTitle: "Log In",
+    loginSubtitle: "Welcome back to OutfitFlow",
+    loginEmailLabel: "Email",
+    loginEmailPlaceholder: "example@email.com",
+    loginPasswordLabel: "Password",
+    loginPasswordPlaceholder: "Enter your password",
+    loginRememberMe: "Keep me logged in",
+    loginForgotPassword: "Forgot password?",
+    loginButton: "Log In",
+    loginSignupPrompt: "Don't have an account?",
+    loginSignupLink: "Sign Up",
+    loginMissingFields: "Please enter your email and password.",
+    loginErrorTitle: "Login Failed",
+    loginGoogleErrorTitle: "Google Login Failed",
+    signupTitle: "Sign Up",
+    signupSubtitle: "Start your journey with our AI stylist",
+    signupNameLabel: "Name",
+    signupNamePlaceholder: "Your name",
+    signupEmailLabel: "Email",
+    signupEmailPlaceholder: "example@email.com",
+    signupPasswordLabel: "Password",
+    signupPasswordPlaceholder: "At least 8 characters",
+    signupConfirmPasswordLabel: "Confirm Password",
+    signupConfirmPasswordPlaceholder: "Re-enter password",
+    signupButton: "Sign Up",
+    signupLoginPrompt: "Already have an account?",
+    signupLoginLink: "Log In",
+    signupMissingFields: "Please fill out all fields.",
+    signupPasswordMismatch: "Passwords do not match.",
+    signupPasswordLength: "Password must be at least 8 characters.",
+    signupSuccessTitle: "Sign-up Successful",
+    signupSuccessMessage: "Welcome to OutfitFlow!",
+    signupErrorTitle: "Sign-up Failed",
+    landingLogin: "Log In",
+    landingHeroSubtitle: "AI-curated looks just for you",
+    landingFeature1Title: "AI Outfit Picks",
+    landingFeature1Description: "Perfect outfits for any weather\nand TPO.",
+    landingFeature2Title: "Real-time Weather",
+    landingFeature2Description: "Stay prepared with smart\nweather-aware tips.",
+    landingFeature3Title: "Smart Wardrobe",
+    landingFeature3Description: "Keep your closet organized\nand efficient.",
+    landingCTA: "Get Started",
+    landingFooterText: "Already have an account?",
+    landingFooterLink: "Log in →",
+    landingFooterLoginPrompt: "Already have an account?",
+    chostItemTitle: "Choose your Items",
+    selectInstruc:
+      "1 top / 1 bottom / 1 outerwear / 1 pair of shoes — accessories unlimited.",
+    wardrobeChooseButton: "Select Items",
+    wantStyle: "Choose Style",
   },
   ko: {
+    lang: "언어",
     //홈 페이지
     quickActions: "빠른 작업",
     aiRecommend: "AI 추천",
@@ -99,7 +202,7 @@ const translations = {
     noRecommendations: "아직 추천 내역이 없습니다",
     stats: "통계",
     ownedItems: "보유 아이템",
-    outfits: "코디 수",
+    outfits: "저장된 코디",
     //세팅 페이지
     accountInfo: "계정 정보",
     name: "이름",
@@ -141,6 +244,7 @@ const translations = {
     editItem: "아이템 수정",
     AddNewItem: "새 아이템 추가",
     searchItems: "아이템 검색...",
+
     categories: {
       all: "전체",
       tops: "상의",
@@ -156,6 +260,17 @@ const translations = {
       autumn: "가을",
       winter: "겨울",
     },
+    styles: {
+      casual: "캐주얼",
+      formal: "포멀",
+      street: "스트릿",
+      vintage: "빈티지",
+      minimal: "미니멀",
+      sporty: "스포티",
+      feminine: "페미닌",
+      dandy: "댄디",
+      etc: "기타",
+    },
     itemDetail: "아이템 상세",
     category: "카테고리",
     season: "계절",
@@ -170,6 +285,101 @@ const translations = {
     dragAnddrop: "드래그 앤 드롭하세요",
     enterErrorTitle: "입력 오류",
     enterError: "이미지, 아이템 이름, 카테고리는 필수입니다.",
+    savedOutfits: "저장한 코디",
+
+    saveOutfit: "저장",
+
+    saved: "저장됨",
+
+    saving: "저장 중...",
+
+    saveOutfitSuccess: "추천 코디를 저장했어요!",
+
+    saveOutfitDuplicate: "이미 저장된 조합이에요.",
+
+    saveOutfitError: "저장 중 문제가 발생했어요.",
+
+    noSavedOutfits: "저장된 코디가 없어요.",
+    compatibilityScore: "조합 점수 {score}/10",
+    needMoreWardrobeItems:
+      "AI 추천을 사용하려면 옷장을 최소 두 벌 이상 채워 주세요.",
+
+    //AI 추천
+    AITitle: "AI 코디 추천",
+    AISubtitle: "날씨와 스타일에 맞는 완벽한 조합을 찾아보세요",
+    weatherFeelsLike: "체감",
+    weatherHumidity: "습도",
+    weatherConditionClear: "맑음",
+    weatherConditionCloudy: "흐림",
+    weatherConditionRain: "비",
+    weatherConditionSnow: "눈",
+    selectItems: "옷 선택하기",
+    emeptyItems: "옷이 없습니다",
+    numberSelected: "개 선택됨",
+    recNewItem: "같이 있으면 좋을 아이템",
+    recNewItemTitle: "이 코디에 추가하면 더 완성도가 높아집니다",
+    colorRec: "추천 보색",
+    suggestOption: "개선 제안",
+    AIAdvise: "AI 조언",
+    getAIRec: "AI 추천 받기",
+    authBack: "← 돌아가기",
+    authAlertTitle: "알림",
+    authFooterPrefix: "계속 진행하면 OutfitFlow의",
+    authFooterSuffix: "에 동의하게 됩니다",
+    legalTerms: "이용약관",
+    legalPrivacy: "개인정보처리방침",
+    commonAnd: "및",
+    authDividerText: "또는",
+    authGoogleButton: "Google로 계속하기",
+    loginTitle: "로그인",
+    loginSubtitle: "OutfitFlow에 오신 것을 환영합니다",
+    loginEmailLabel: "이메일",
+    loginEmailPlaceholder: "example@email.com",
+    loginPasswordLabel: "비밀번호",
+    loginPasswordPlaceholder: "비밀번호 입력",
+    loginRememberMe: "로그인 상태 유지",
+    loginForgotPassword: "비밀번호 찾기",
+    loginButton: "로그인",
+    loginSignupPrompt: "아직 계정이 없으신가요?",
+    loginSignupLink: "회원가입",
+    loginMissingFields: "이메일과 비밀번호를 입력해주세요.",
+    loginErrorTitle: "로그인 실패",
+    loginGoogleErrorTitle: "Google 로그인 실패",
+    signupTitle: "회원가입",
+    signupSubtitle: "AI 스타일리스트와 함께 시작하세요",
+    signupNameLabel: "이름",
+    signupNamePlaceholder: "홍길동",
+    signupEmailLabel: "이메일",
+    signupEmailPlaceholder: "example@email.com",
+    signupPasswordLabel: "비밀번호",
+    signupPasswordPlaceholder: "최소 8자 이상",
+    signupConfirmPasswordLabel: "비밀번호 확인",
+    signupConfirmPasswordPlaceholder: "비밀번호 재입력",
+    signupButton: "회원가입",
+    signupLoginPrompt: "이미 계정이 있으신가요?",
+    signupLoginLink: "로그인",
+    signupMissingFields: "모든 항목을 입력해주세요.",
+    signupPasswordMismatch: "비밀번호가 일치하지 않습니다.",
+    signupPasswordLength: "비밀번호는 최소 8자 이상이어야 합니다.",
+    signupSuccessTitle: "회원가입 성공",
+    signupSuccessMessage: "OutfitFlow에 오신 것을 환영합니다!",
+    signupErrorTitle: "회원가입 실패",
+    landingLogin: "로그인",
+    landingHeroSubtitle: "AI가 추천하는 나만의 스타일",
+    landingFeature1Title: "AI 코디 추천",
+    landingFeature1Description: "날씨와 TPO에 맞는\n완벽한 옷차림을 추천합니다",
+    landingFeature2Title: "실시간 날씨 기반",
+    landingFeature2Description: "현재 날씨를 고려한\n스마트한 옷 추천",
+    landingFeature3Title: "스마트 옷장 관리",
+    landingFeature3Description: "내 옷을 쉽게 보관하고\n효율적으로 활용하세요",
+    landingCTA: "시작하기",
+    landingFooterText: "이미 계정이 있으신가요?",
+    landingFooterLink: "로그인하기 →",
+    landingFooterLoginPrompt: "이미 계정이 있으신가요?",
+    chostItemTitle: "옷 선택하기",
+    selectInstruc: "상의/하의/아우터/신발은 각 1개씩, 악세사리는 제한 없음",
+    wardrobeChooseButton: "옷장에서 선택하기",
+    wantStyle: "원하는 스타일",
   },
 } as const;
 
@@ -182,15 +392,18 @@ export type TranslationKeys = keyof typeof translations.en;
 
 export type CategoryKey = keyof typeof translations.en.categories;
 export type SeasonKey = keyof typeof translations.en.seasons;
+export type StyleKey = keyof typeof translations.en.styles;
 
 export const setI18nLanguage = (language: SupportedLanguage) => {
   i18n.locale = language;
 };
 
-export const t = (key: TranslationKeys) => i18n.t(key);
+export const t = (key: TranslationKeys, options?: Record<string, any>) =>
+  i18n.t(key, options);
 export const tCategory = (key: CategoryKey) =>
   i18n.t(`categories.${key}` as const);
 export const tSeason = (key: SeasonKey) => i18n.t(`seasons.${key}` as const);
+export const tStyle = (key: StyleKey) => i18n.t(`styles.${key}` as const);
 
 export const availableLanguages: { code: SupportedLanguage; label: string }[] =
   [

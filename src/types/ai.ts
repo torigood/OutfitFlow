@@ -45,6 +45,31 @@ export interface OutfitAnalysis {
   selectedItems: ClothingItem[]; // 분석한 옷들
 }
 
+export interface SavedOutfitItem {
+  id: string;
+  name: string;
+  category: string;
+  color: string;
+  brand: string;
+  imageUrl: string;
+}
+
+export interface SavedOutfit {
+  id: string;
+  itemIds: string[];
+  itemIdsHash: string;
+  items: SavedOutfitItem[];
+  compatibility: number;
+  colorHarmonyScore: number;
+  styleConsistency: number;
+  advice: string;
+  suggestions: string[];
+  preferredStyle?: FashionStyle | null;
+  weatherSnapshot?: WeatherInfo | null;
+  coverImage: string;
+  savedAt: Date;
+}
+
 // TPO 분석 결과 (Phase C)
 export interface TPOAnalysis extends OutfitAnalysis {
   tpoScore: number; // TPO 적합도 (1-10)

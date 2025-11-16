@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   View,
   Text,
@@ -18,6 +18,8 @@ import { signUpWithEmail, signInWithGoogle } from "../../services/authService";
 import { Mail, Lock, User, Sparkles, Eye, EyeOff } from "lucide-react-native";
 import Toast from "react-native-toast-message";
 import { colors } from "../../theme/colors";
+import { useLanguage } from "../../contexts/LanguageContext";
+import { t } from "../../localization/i18n";
 
 type AuthStackParamList = {
   Landing: undefined;
@@ -29,6 +31,7 @@ type NavigationProp = NativeStackNavigationProp<AuthStackParamList>;
 
 const SignupScreen = () => {
   const navigation = useNavigation<NavigationProp>();
+  const { language } = useLanguage();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -54,12 +57,22 @@ const SignupScreen = () => {
     return unsubscribe;
   }, [navigation]);
 
+  const placeholders = useMemo(
+    () => ({
+      name: t("signupNamePlaceholder"),
+      email: t("signupEmailPlaceholder"),
+      password: t("signupPasswordPlaceholder"),
+      confirmPassword: t("signupConfirmPasswordPlaceholder"),
+    }),
+    [language]
+  );
+
   const handleSignup = async () => {
     if (!name || !email || !password || !confirmPassword) {
       Toast.show({
         type: "error",
-        text1: "알림",
-        text2: "모든 항목을 입력해주세요.",
+        text1: t("authAlertTitle"),
+        text2: t("signupMissingFields"),
       });
       return;
     }
@@ -67,8 +80,8 @@ const SignupScreen = () => {
     if (password !== confirmPassword) {
       Toast.show({
         type: "error",
-        text1: "알림",
-        text2: "비밀번호가 일치하지 않습니다.",
+        text1: t("authAlertTitle"),
+        text2: t("signupPasswordMismatch"),
       });
       return;
     }
@@ -76,8 +89,8 @@ const SignupScreen = () => {
     if (password.length < 8) {
       Toast.show({
         type: "error",
-        text1: "알림",
-        text2: "비밀번호는 최소 8자 이상이어야 합니다.",
+        text1: t("authAlertTitle"),
+        text2: t("signupPasswordLength"),
       });
       return;
     }
@@ -87,13 +100,13 @@ const SignupScreen = () => {
       await signUpWithEmail(email, password, name);
       Toast.show({
         type: "success",
-        text1: "회원가입 성공",
-        text2: "OutfitFlow에 오신 것을 환영합니다!",
+        text1: t("signupSuccessTitle"),
+        text2: t("signupSuccessMessage"),
       });
     } catch (error: any) {
       Toast.show({
         type: "error",
-        text1: "회원가입 실패",
+        text1: t("signupErrorTitle"),
         text2: error.message,
       });
     } finally {
@@ -108,7 +121,7 @@ const SignupScreen = () => {
     } catch (error: any) {
       Toast.show({
         type: "error",
-        text1: "Google 로그인 실패",
+        text1: t("loginGoogleErrorTitle"),
         text2: error.message,
       });
     } finally {
@@ -143,7 +156,7 @@ const SignupScreen = () => {
           }}
           style={styles.backButton}
         >
-          <Text style={styles.backButtonText}>← 돌아가기</Text>
+            <Text style={styles.backButtonText}>{t("authBack")}</Text>
         </TouchableOpacity>
 
         {/* Signup Card */}
@@ -163,16 +176,14 @@ const SignupScreen = () => {
 
           {/* Title */}
           <View style={styles.titleSection}>
-            <Text style={styles.title}>회원가입</Text>
-            <Text style={styles.subtitle}>
-              AI 스타일리스트와 함께 시작하세요
-            </Text>
+            <Text style={styles.title}>{t("signupTitle")}</Text>
+            <Text style={styles.subtitle}>{t("signupSubtitle")}</Text>
           </View>
 
           {/* Form */}
           <View style={styles.form}>
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>이름</Text>
+            <Text style={styles.label}>{t("signupNameLabel")}</Text>
               <View style={styles.inputWrapper}>
                 <User
                   size={20}
@@ -181,7 +192,7 @@ const SignupScreen = () => {
                 />
                 <TextInput
                   style={styles.input}
-                  placeholder="홍길동"
+                placeholder={placeholders.name}
                   placeholderTextColor={colors.textTertiary}
                   value={name}
                   onChangeText={setName}
@@ -192,7 +203,7 @@ const SignupScreen = () => {
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>이메일</Text>
+            <Text style={styles.label}>{t("signupEmailLabel")}</Text>
               <View style={styles.inputWrapper}>
                 <Mail
                   size={20}
@@ -201,7 +212,7 @@ const SignupScreen = () => {
                 />
                 <TextInput
                   style={styles.input}
-                  placeholder="example@email.com"
+                placeholder={placeholders.email}
                   placeholderTextColor={colors.textTertiary}
                   value={email}
                   onChangeText={setEmail}
@@ -214,7 +225,7 @@ const SignupScreen = () => {
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>비밀번호</Text>
+            <Text style={styles.label}>{t("signupPasswordLabel")}</Text>
               <View style={styles.inputWrapper}>
                 <Lock
                   size={20}
@@ -224,7 +235,7 @@ const SignupScreen = () => {
                 <TextInput
                   ref={passwordInputRef}
                   style={styles.input}
-                  placeholder="최소 8자 이상"
+                placeholder={placeholders.password}
                   placeholderTextColor={colors.textTertiary}
                   value={password}
                   onChangeText={setPassword}
@@ -250,7 +261,9 @@ const SignupScreen = () => {
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>비밀번호 확인</Text>
+            <Text style={styles.label}>
+              {t("signupConfirmPasswordLabel")}
+            </Text>
               <View style={styles.inputWrapper}>
                 <Lock
                   size={20}
@@ -260,7 +273,7 @@ const SignupScreen = () => {
                 <TextInput
                   ref={confirmPasswordInputRef}
                   style={styles.input}
-                  placeholder="비밀번호 재입력"
+                placeholder={placeholders.confirmPassword}
                   placeholderTextColor={colors.textTertiary}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
@@ -302,7 +315,7 @@ const SignupScreen = () => {
                 {loading ? (
                   <ActivityIndicator color={colors.textOnDark} />
                 ) : (
-                  <Text style={styles.signupButtonText}>회원가입</Text>
+            <Text style={styles.signupButtonText}>{t("signupButton")}</Text>
                 )}
               </LinearGradient>
             </TouchableOpacity>
@@ -311,7 +324,7 @@ const SignupScreen = () => {
           {/* Divider */}
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>또는</Text>
+          <Text style={styles.dividerText}>{t("authDividerText")}</Text>
             <View style={styles.dividerLine} />
           </View>
 
@@ -322,34 +335,36 @@ const SignupScreen = () => {
             disabled={loading}
           >
             <Text style={styles.googleIcon}>G</Text>
-            <Text style={styles.googleButtonText}>Google로 계속하기</Text>
+          <Text style={styles.googleButtonText}>
+            {t("authGoogleButton")}
+          </Text>
           </TouchableOpacity>
 
           {/* Login Link */}
           <View style={styles.loginSection}>
-            <Text style={styles.loginText}>이미 계정이 있으신가요? </Text>
+          <Text style={styles.loginText}>{t("signupLoginPrompt")} </Text>
             <TouchableOpacity
               onPress={() => navigation.navigate("Login")}
               disabled={loading}
             >
-              <Text style={styles.loginLink}>로그인</Text>
+            <Text style={styles.loginLink}>{t("signupLoginLink")}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>계속 진행하면 OutfitFlow의</Text>
+        <Text style={styles.footerText}>{t("authFooterPrefix")}</Text>
           <View style={styles.footerLinks}>
             <TouchableOpacity>
-              <Text style={styles.footerLink}>이용약관</Text>
+          <Text style={styles.footerLink}>{t("legalTerms")}</Text>
             </TouchableOpacity>
-            <Text style={styles.footerText}> 및 </Text>
+        <Text style={styles.footerText}> {t("commonAnd")} </Text>
             <TouchableOpacity>
-              <Text style={styles.footerLink}>개인정보처리방침</Text>
+          <Text style={styles.footerLink}>{t("legalPrivacy")}</Text>
             </TouchableOpacity>
           </View>
-          <Text style={styles.footerText}>에 동의하게 됩니다</Text>
+        <Text style={styles.footerText}>{t("authFooterSuffix")}</Text>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

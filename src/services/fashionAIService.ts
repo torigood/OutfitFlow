@@ -247,19 +247,28 @@ export const recommendNewItems = async (
   preferredStyle: FashionStyle,
   temperature?: number
 ): Promise<{ category: string; item: string; reason: string }[]> => {
+
   try {
-    // 기존 옷장 정보 상세 요약
-    const itemDetails = existingItems.map(
-      (item) => `${item.category} - ${item.color} ${item.name} (${item.brand})`
-    );
+    const MAX_ITEM_DETAILS = 12;
 
     const summary = `
-기존 옷장에 있는 아이템들:
-${itemDetails.join("\n")}
+Total wardrobe items: ${existingItems.length}
+Preferred style: ${preferredStyle}
+${temperature !== undefined ? `Current temperature: ${temperature}°C` : ""}
 
-총 ${existingItems.length}개의 아이템 보유
-선호 스타일: ${preferredStyle}
-${temperature !== undefined ? `현재 온도: ${temperature}°C` : ""}
+Representative items (up to ${MAX_ITEM_DETAILS} shown):
+${existingItems
+  .slice(0, MAX_ITEM_DETAILS)
+  .map(
+    (item) =>
+      `- ${item.category} | ${item.color} ${item.name}${item.brand ? ` (${item.brand})` : ""}`
+  )
+  .join("\n")}
+${
+  existingItems.length > MAX_ITEM_DETAILS
+    ? `...(showing only ${MAX_ITEM_DETAILS} of ${existingItems.length} total)`
+    : ""
+}
 `;
 
     const prompt = `당신은 전문 패션 스타일리스트입니다. 사용자의 옷장을 분석하고 새로운 아이템 구매를 추천해주세요.
