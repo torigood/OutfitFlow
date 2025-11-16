@@ -228,7 +228,11 @@ src/
 
 ## 스크린샷
 
-> <img width="50%" alt="Image" src="https://github.com/user-attachments/assets/d1d56589-9bfe-4413-9dce-45226f85f927" />
+<img width="50%" alt="Image" src="https://github.com/user-attachments/assets/d1d56589-9bfe-4413-9dce-45226f85f927" />
+<img width="50%"alt="Image" src="https://github.com/user-attachments/assets/7bb9dd8e-aa9e-402c-8c55-cea9793c1ab9" />
+<img width="50%" alt="Image" src="https://github.com/user-attachments/assets/38153bf3-84b4-4872-9eac-a5001c56b3fa" />
+<img width="50%" alt="Image" src="https://github.com/user-attachments/assets/199ce328-9367-4a84-9c80-e2754529f3b3" />
+<img width="50%" alt="Image" src="https://github.com/user-attachments/assets/1ab49642-b238-4ec4-8016-651a382f7487" />
 
 ---
 
