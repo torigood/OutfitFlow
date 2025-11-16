@@ -228,7 +228,7 @@ src/
 
 ## 스크린샷
 
-> [Coming Soon] 랜딩 페이지, 옷장 관리, AI 추천 화면 스크린샷 추가 예정
+> <img width="80%" alt="Image" src="https://github.com/user-attachments/assets/d1d56589-9bfe-4413-9dce-45226f85f927" />
 
 ---
 
