@@ -228,7 +228,6 @@ src/
 
 ## 스크린샷
 
-<!-- 방법 2: 테이블 레이아웃 -->
 <table style="border-collapse:collapse; margin:0 auto;">
   <tr>
     <td style="padding:6px;"><img src="https://github.com/user-attachments/assets/d1d56589-9bfe-4413-9dce-45226f85f927" alt="Image1" width="250" style="display:block;" /></td>
