@@ -228,7 +228,7 @@ src/
 
 ## 스크린샷
 
-> <img width="80%" alt="Image" src="https://github.com/user-attachments/assets/d1d56589-9bfe-4413-9dce-45226f85f927" />
+> <img width="50%" alt="Image" src="https://github.com/user-attachments/assets/d1d56589-9bfe-4413-9dce-45226f85f927" />
 
 ---
 
