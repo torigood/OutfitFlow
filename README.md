@@ -1,4 +1,4 @@
-# OutfitFlow 👗
+# OutfitFlow
 
 > React Native app that turns your wardrobe and local weather into tailored outfit recommendations powered by Google Gemini.
 
