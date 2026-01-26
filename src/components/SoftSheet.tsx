@@ -148,9 +148,10 @@ export function SoftSheet({ open, onClose, children }: SoftSheetProps) {
             transform: [{ translateY }],
           },
         ]}
-        {...panResponder.panHandlers}
       >
-        <View style={styles.handle} />
+        <View {...panResponder.panHandlers} style={styles.handleArea}>
+          <View style={styles.handle} />
+        </View>
         {children}
       </Animated.View>
     </View>
@@ -183,12 +184,14 @@ const styles = StyleSheet.create({
       },
     }),
   },
+  handleArea: {
+    paddingVertical: 10,
+    alignItems: "center",
+  },
   handle: {
-    alignSelf: "center",
     width: 40,
     height: 5,
     borderRadius: 3,
     backgroundColor: colors.lightGray,
-    marginBottom: 12,
   },
 });

@@ -35,6 +35,13 @@ export interface ColorHarmony {
   complementaryColors: string[]; // 보색 제안
 }
 
+// 새 아이템 추천 (구매 추천)
+export interface NewItemRecommendation {
+  category: string;
+  item: string;
+  reason: string;
+}
+
 // 코디 조합 분석 결과 (Phase A)
 export interface OutfitAnalysis {
   compatibility: number; // 전체 적합도 (1-10)
@@ -43,6 +50,7 @@ export interface OutfitAnalysis {
   advice: string; // AI 조언
   suggestions: string[]; // 개선 제안
   selectedItems: ClothingItem[]; // 분석한 옷들
+  newItemRecommendations?: NewItemRecommendation[]; // 새 아이템 추천 (옵션)
 }
 
 export interface SavedOutfitItem {
@@ -128,6 +136,11 @@ export interface GeminiOutfitResponse {
   styleConsistency: number;
   advice: string;
   suggestions: string[];
+  newItemRecommendations?: Array<{
+    category: string;
+    item: string;
+    reason: string;
+  }>;
 }
 
 export interface GeminiTPOResponse extends GeminiOutfitResponse {

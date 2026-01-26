@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -109,49 +109,40 @@ export default function HomeScreen() {
   const [allOutfitsLoading, setAllOutfitsLoading] = useState(false);
 
   useFocusEffect(
-    React.useCallback(() => {
+    useCallback(() => {
       let isMounted = true;
-      const load = async () => {
+
+      const loadData = async () => {
         if (!user?.uid) return;
+
         try {
+          // 1. 저장된 코디 불러오기
           setSavedLoading(true);
-          const data = await getSavedOutfits(user.uid, { take: 2 });
+          const savedData = await getSavedOutfits(user.uid, { take: 2 });
+          
+          // 2. 옷장 아이템 불러오기 (여기서 불러와야 실시간 갱신됨!)
+          const wardrobeData = await getClothingItems(user.uid);
+
           if (isMounted) {
-            setSavedOutfits(data);
+            setSavedOutfits(savedData);
+            setWardrobeItems(wardrobeData); // 상태 업데이트
             setSavedError(null);
           }
         } catch (err: any) {
-          console.error("load saved outfits", err);
+          console.error("load home data failed", err);
           if (isMounted) setSavedError(err?.message ?? "Failed");
         } finally {
           if (isMounted) setSavedLoading(false);
         }
       };
-      load();
+
+      loadData();
+
       return () => {
         isMounted = false;
       };
     }, [user?.uid])
   );
-
-  useEffect(() => {
-    if (!user?.uid) return;
-
-    let isMounted = true;
-    (async () => {
-      try {
-        const items: ClothingItem[] = await getClothingItems(user.uid);
-        if (isMounted) setWardrobeItems(items);
-      } catch (error) {
-        console.error("옷장 불러오기 실패:", error);
-        if (isMounted) setWardrobeItems([]);
-      }
-    })();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [user?.uid]);
 
   // 저장된 코디 상세 보기 열기
   const handleOpenOutfitDetail = (outfit: SavedOutfit) => {
@@ -169,7 +160,7 @@ export default function HomeScreen() {
       [
         { text: t("cancel"), style: "cancel" },
         {
-          text: t("delete"),
+          text: t("deleteText"),
           style: "destructive",
           onPress: async () => {
             try {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
   Animated,
   PanResponder,
   Easing,
+  FlatList, // 🚀 추가됨
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -22,10 +23,7 @@ import type { ComponentProps } from "react";
 import { X, Search, Heart } from "lucide-react-native";
 import { useAuth } from "../contexts/AuthContext";
 import { getClothingItems } from "../services/wardrobeService";
-import {
-  recommendSmartOutfit,
-  recommendNewItems,
-} from "../services/fashionAIService";
+import { recommendSmartOutfit } from "../services/fashionAIService";
 import { getWeatherByCurrentLocation } from "../services/weatherService";
 import { ClothingItem } from "../types/wardrobe";
 import { OutfitAnalysis, FashionStyle, WeatherInfo } from "../types/ai";
@@ -184,6 +182,13 @@ export default function AIRecommendScreen() {
   const CARD_WIDTH = Dimensions.get("window").width - 48;
   const scrollViewRef = React.useRef<ScrollView>(null);
   const isRequestingRef = React.useRef(false); // API 요청 중 플래그
+
+  // 쿨다운 상태 (30초)
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
+  const cooldownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // 결과 캐싱 (메모리)
+  const cacheRef = useRef<Map<string, OutfitAnalysis>>(new Map());
 
   const [clothes, setClothes] = useState<ClothingItem[]>([]);
   const [selectedItems, setSelectedItems] = useState<ClothingItem[]>([]);
@@ -344,14 +349,62 @@ export default function AIRecommendScreen() {
     setSelectedItems(selectedItems.filter((i) => i.id !== itemId));
   };
 
+  // 캐시 키 생성 (선택 아이템 + 스타일 + 온도범위)
+  const getCacheKey = useCallback(() => {
+    const itemIds = selectedItems.map((i) => i.id).sort().join(",");
+    const tempRange = weather?.temperature
+      ? Math.floor(weather.temperature / 5) * 5 // 5도 단위로 그룹화
+      : "none";
+    return `${itemIds}|${selectedStyle}|${tempRange}`;
+  }, [selectedItems, selectedStyle, weather?.temperature]);
+
+  // 쿨다운 시작
+  const startCooldown = useCallback(() => {
+    setCooldownSeconds(30);
+    if (cooldownTimerRef.current) {
+      clearInterval(cooldownTimerRef.current);
+    }
+    cooldownTimerRef.current = setInterval(() => {
+      setCooldownSeconds((prev) => {
+        if (prev <= 1) {
+          if (cooldownTimerRef.current) {
+            clearInterval(cooldownTimerRef.current);
+            cooldownTimerRef.current = null;
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }, []);
+
+  // 컴포넌트 언마운트 시 타이머 정리
+  useEffect(() => {
+    return () => {
+      if (cooldownTimerRef.current) {
+        clearInterval(cooldownTimerRef.current);
+      }
+    };
+  }, []);
+
   // AI 스마트 추천 받기
   const handleGetRecommendation = async () => {
     setAnalysis(null);
     setSavedOutfitId(null);
     setSaveError(null);
+
     // 이중 체크: ref와 state 모두 확인
     if (isRequestingRef.current || isLoading) {
       console.warn("⚠️ 중복 호출 차단! 이미 AI 추천을 불러오는 중입니다.");
+      return;
+    }
+
+    // 쿨다운 중이면 차단
+    if (cooldownSeconds > 0) {
+      Toast.show({
+        type: "info",
+        text1: `${cooldownSeconds}초 후에 다시 시도해주세요`,
+      });
       return;
     }
 
@@ -359,6 +412,22 @@ export default function AIRecommendScreen() {
       Toast.show({
         type: "info",
         text1: t("needMoreWardrobeItems"),
+      });
+      return;
+    }
+
+    // 캐시 확인
+    const cacheKey = getCacheKey();
+    const cachedResult = cacheRef.current.get(cacheKey);
+    if (cachedResult) {
+      console.log("✅ 캐시에서 결과 로드:", cacheKey);
+      setAnalysis(cachedResult);
+      setSuggestedItems(cachedResult.newItemRecommendations || []);
+      setCurrentImageIndex(0);
+      Toast.show({
+        type: "success",
+        text1: t("getAIRec"),
+        text2: "캐시된 결과를 불러왔습니다",
       });
       return;
     }
@@ -377,30 +446,28 @@ export default function AIRecommendScreen() {
       console.log("선택된 아이템:", selectedItems.length);
       console.log("전체 옷:", clothes.length);
 
-      // 스마트 추천 (유저 선택 아이템 포함 or 전체 자동)
-      console.log("1️⃣ 코디 조합 추천 API 호출 중...");
+      // 스마트 추천 (코디 분석 + 새 아이템 추천 통합 - 1번의 API 호출)
+      console.log("🚀 통합 API 호출 중...");
       const outfitAnalysis = await recommendSmartOutfit(
         selectedItems,
         clothes,
         selectedStyle,
-        weather?.temperature // 날씨 API에서 가져온 온도 전달
-      );
-      console.log("✅ 코디 조합 추천 완료");
-
-      // 같이 있으면 좋을 아이템 추천
-      console.log("2️⃣ 새 아이템 추천 API 호출 중...");
-      const newItems = await recommendNewItems(
-        clothes,
-        selectedStyle,
         weather?.temperature
       );
-      console.log("✅ 새 아이템 추천 완료");
+      console.log("✅ AI 추천 완료 (1회 API 호출)");
+
+      // 결과 캐싱
+      cacheRef.current.set(cacheKey, outfitAnalysis);
+      console.log("💾 결과 캐시 저장:", cacheKey);
 
       setAnalysis(outfitAnalysis);
-      setSuggestedItems(newItems);
+      setSuggestedItems(outfitAnalysis.newItemRecommendations || []);
       setCurrentImageIndex(0);
+
+      // 쿨다운 시작
+      startCooldown();
+
       console.log("=== AI 추천 완료 ===");
-      console.log("종료 시간:", new Date().toISOString());
     } catch (error: any) {
       console.error("=== AI 분석 오류 ===", error);
       if (error instanceof Error && error.message.includes("아이템 부족")) {
@@ -410,11 +477,13 @@ export default function AIRecommendScreen() {
         });
         return;
       }
-      alert(error instanceof Error ? error.message : "AI 분석에 실패했습니다.");
+      Toast.show({
+        type: "error",
+        text1: error instanceof Error ? error.message : "AI 분석에 실패했습니다.",
+      });
     } finally {
       setIsLoading(false);
-      isRequestingRef.current = false; // 플래그 해제
-      console.log("로딩 상태 해제");
+      isRequestingRef.current = false;
     }
   };
 
@@ -636,20 +705,22 @@ export default function AIRecommendScreen() {
         <TouchableOpacity
           style={[
             styles.recommendButton,
-            (clothes.length < 2 || isLoading || isRequestingRef.current) &&
+            (clothes.length < 2 || isLoading || cooldownSeconds > 0) &&
               styles.recommendButtonDisabled,
           ]}
-          onPress={() => {
-            console.log("🔘 AI 추천 버튼 클릭됨");
-            console.log("현재 로딩 상태:", isLoading);
-            console.log("현재 요청 플래그:", isRequestingRef.current);
-            handleGetRecommendation();
-          }}
-          disabled={clothes.length < 2 || isLoading || isRequestingRef.current}
+          onPress={handleGetRecommendation}
+          disabled={clothes.length < 2 || isLoading || cooldownSeconds > 0}
           activeOpacity={0.7}
         >
           {isLoading ? (
             <ActivityIndicator color={colors.white} />
+          ) : cooldownSeconds > 0 ? (
+            <>
+              <Ionicons name="time-outline" size={20} color={colors.white} />
+              <Text style={styles.recommendButtonText}>
+                {cooldownSeconds}초 후 다시 시도
+              </Text>
+            </>
           ) : (
             <>
               <Ionicons name="sparkles" size={20} color={colors.white} />
@@ -666,20 +737,19 @@ export default function AIRecommendScreen() {
               <Text style={styles.resultTitle}>추천 코디</Text>
               <View style={styles.headerButtons}>
                 <TouchableOpacity
-                  onPress={() => {
-                    console.log("🔄 새 추천 버튼 클릭됨");
-                    handleGetRecommendation();
-                  }}
+                  onPress={handleGetRecommendation}
                   style={[
                     styles.newRecommendButton,
-                    (isLoading || isRequestingRef.current) &&
+                    (isLoading || cooldownSeconds > 0) &&
                       styles.newRecommendButtonDisabled,
                   ]}
-                  disabled={isLoading || isRequestingRef.current}
+                  disabled={isLoading || cooldownSeconds > 0}
                   activeOpacity={0.7}
                 >
                   {isLoading ? (
                     <ActivityIndicator size="small" color="#999" />
+                  ) : cooldownSeconds > 0 ? (
+                    <Text style={styles.newRecommendText}>{cooldownSeconds}초</Text>
                   ) : (
                     <>
                       <Ionicons
@@ -1002,52 +1072,52 @@ export default function AIRecommendScreen() {
             )}
           </View>
 
-          {/* 옷 그리드 */}
-          <ScrollView
+          {/* 🚀 [수정됨] 옷 그리드를 FlatList로 교체하여 스크롤 문제 해결 */}
+          <FlatList
+            data={filteredClothes}
+            keyExtractor={(item) => item.id}
+            numColumns={3}
             style={styles.sheetScrollView}
+            nestedScrollEnabled={true} // 바텀시트 내부 스크롤 필수 설정
             showsVerticalScrollIndicator={true}
-          >
-            <View style={styles.sheetGrid}>
-              {filteredClothes.map((item) => {
-                const isSelected = selectedItems.find((i) => i.id === item.id);
-                const canSelect = canSelectItem(item);
+            columnWrapperStyle={{ gap: 8 }} // 가로 간격
+            contentContainerStyle={{ gap: 8, paddingBottom: 20 }} // 세로 간격 및 하단 여백
+            renderItem={({ item }) => {
+              const isSelected = selectedItems.find((i) => i.id === item.id);
+              const canSelect = canSelectItem(item);
 
-                return (
-                  <TouchableOpacity
-                    key={item.id}
-                    style={[
-                      styles.sheetClothItem,
-                      isSelected && styles.sheetClothItemSelected,
-                      !canSelect &&
-                        !isSelected &&
-                        styles.sheetClothItemDisabled,
-                    ]}
-                    onPress={() => toggleItemSelection(item)}
-                    disabled={!canSelect && !isSelected}
-                  >
-                    <Image
-                      source={{ uri: item.imageUrl }}
-                      style={styles.sheetClothImage}
-                    />
-                    {isSelected && (
-                      <View style={styles.selectedBadge}>
-                        <Text style={styles.selectedBadgeText}>✓</Text>
-                      </View>
-                    )}
-                    <Text style={styles.sheetClothName} numberOfLines={1}>
-                      {item.name}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            {filteredClothes.length === 0 && (
+              return (
+                <TouchableOpacity
+                  style={[
+                    styles.sheetClothItem,
+                    isSelected && styles.sheetClothItemSelected,
+                    !canSelect && !isSelected && styles.sheetClothItemDisabled,
+                  ]}
+                  onPress={() => toggleItemSelection(item)}
+                  disabled={!canSelect && !isSelected}
+                  activeOpacity={0.7}
+                >
+                  <Image
+                    source={{ uri: item.imageUrl }}
+                    style={styles.sheetClothImage}
+                  />
+                  {isSelected && (
+                    <View style={styles.selectedBadge}>
+                      <Text style={styles.selectedBadgeText}>✓</Text>
+                    </View>
+                  )}
+                  <Text style={styles.sheetClothName} numberOfLines={1}>
+                    {item.name}
+                  </Text>
+                </TouchableOpacity>
+              );
+            }}
+            ListEmptyComponent={
               <View style={styles.emptyState}>
                 <Text style={styles.emptyText}>{t("emptyItems")}</Text>
               </View>
-            )}
-          </ScrollView>
+            }
+          />
 
           {/* 확인 버튼 */}
           <TouchableOpacity
@@ -1523,6 +1593,7 @@ const styles = StyleSheet.create({
   },
   // 바텀시트 스타일
   sheetContainer: {
+    flex: 1,
     maxHeight: "85%",
     backgroundColor: colors.bgElevated,
   },
@@ -1561,15 +1632,17 @@ const styles = StyleSheet.create({
   },
   categoryScroll: {
     marginTop: 16,
+    flexGrow: 0,
   },
   categoryChip: {
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 24,
     backgroundColor: colors.softCard,
     marginRight: 8,
     borderWidth: 1,
     borderColor: colors.border,
+    flexShrink: 0,
   },
   categoryChipActive: {
     backgroundColor: colors.black,
@@ -1583,24 +1656,24 @@ const styles = StyleSheet.create({
   categoryChipTextActive: {
     color: colors.white,
   },
+  // 🚀 [수정됨] 필터 컨테이너: 위치 오류 수정
   filterContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 4,
     marginTop: 12,
     position: "relative",
     zIndex: 100,
-    right: 22,
   },
   filterButton: {
     flexDirection: "row",
     alignItems: "center",
     alignSelf: "flex-start",
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.softCard,
-    gap: 8,
+    gap: 6,
   },
   filterButtonActive: {
     backgroundColor: colors.black,
@@ -1613,22 +1686,22 @@ const styles = StyleSheet.create({
   filterTextActive: {
     color: colors.white,
   },
+  // 🚀 [수정됨] 드롭다운 위치 수정
   seasonFilterDropdown: {
     position: "absolute",
-    top: 44,
-    left: 15,
+    top: 40,
+    left: 4,
     backgroundColor: colors.white,
-    borderRadius: 14,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.border,
-    minWidth: 140,
+    minWidth: 120,
     zIndex: 1000,
     shadowColor: colors.black,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 8,
-    overflow: "hidden",
   },
   seasonFilterItem: {
     flexDirection: "row",
@@ -1658,16 +1731,12 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   sheetScrollView: {
-    maxHeight: 400,
+    flex: 1,
     marginTop: 16,
   },
-  sheetGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-  },
+  // 🚀 [수정됨] FlatList 사용으로 인한 스타일 변경
   sheetClothItem: {
-    width: "30%",
+    width: "31.5%", // 3열 배치
     borderRadius: 14,
     borderWidth: 2,
     borderColor: "transparent",
@@ -1680,7 +1749,7 @@ const styles = StyleSheet.create({
   },
   sheetClothImage: {
     width: "100%",
-    height: 100,
+    height: 110, // 높이 고정
     borderRadius: 12,
     backgroundColor: colors.bgTertiary,
   },

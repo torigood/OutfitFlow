@@ -4,16 +4,18 @@ import {
   OutfitAnalysis,
   GeminiOutfitResponse,
   FashionStyle,
+  NewItemRecommendation,
 } from "../types/ai";
 
 /**
- * Phase A: 코디 조합 추천
- * 선택한 옷들의 조합을 분석하고 추천 제공
+ * Phase A: 코디 조합 추천 + 새 아이템 추천 (통합)
+ * 선택한 옷들의 조합을 분석하고 추천 제공 + 새로 구매할 아이템 추천
  */
 export const analyzeOutfitCombination = async (
   items: ClothingItem[],
   preferredStyle?: FashionStyle,
-  temperature?: number
+  temperature?: number,
+  allWardrobeItems?: ClothingItem[] // 옷장 전체 (새 아이템 추천용)
 ): Promise<OutfitAnalysis> => {
   try {
     if (items.length < 2) {
@@ -37,18 +39,27 @@ export const analyzeOutfitCombination = async (
       )
       .join("\n");
 
-    // AI 프롬프트 생성
-    const prompt = `당신은 전문 패션 스타일리스트입니다. 다음 옷들의 조합을 분석해주세요.
+    // 옷장 요약 (새 아이템 추천용)
+    const MAX_WARDROBE_ITEMS = 12;
+    const wardrobeSummary = allWardrobeItems
+      ? `
+옷장 보유 아이템 (${allWardrobeItems.length}개):
+${allWardrobeItems
+  .slice(0, MAX_WARDROBE_ITEMS)
+  .map((item) => `- ${item.category} | ${item.color} ${item.name}`)
+  .join("\n")}
+${allWardrobeItems.length > MAX_WARDROBE_ITEMS ? `...(총 ${allWardrobeItems.length}개 중 ${MAX_WARDROBE_ITEMS}개만 표시)` : ""}`
+      : "";
+
+    // AI 프롬프트 생성 (코디 분석 + 새 아이템 추천 통합)
+    const prompt = `당신은 전문 패션 스타일리스트입니다. 다음 옷들의 조합을 분석하고, 옷장에 추가하면 좋을 새 아이템도 추천해주세요.
 
 선택한 옷:
 ${itemsDescription}
 
 ${preferredStyle ? `선호 스타일: ${preferredStyle}` : ""}
-${
-  temperature !== undefined
-    ? `현재 기온: ${temperature}°C - 이 온도에 적합한지 반드시 고려하세요`
-    : ""
-}
+${temperature !== undefined ? `현재 기온: ${temperature}°C - 이 온도에 적합한지 반드시 고려하세요` : ""}
+${wardrobeSummary}
 
 다음 JSON 형식으로 응답해주세요:
 {
@@ -60,9 +71,15 @@ ${
   },
   "styleConsistency": 1-10 점수 (스타일 일관성),
   "advice": "전체적인 코디 조언 (한국어, 2-3문장)",
-  "suggestions": ["개선 제안 1", "개선 제안 2", "개선 제안 3"]
+  "suggestions": ["개선 제안 1", "개선 제안 2", "개선 제안 3"],
+  "newItemRecommendations": [
+    {"category": "카테고리", "item": "구체적인 아이템명", "reason": "추천 이유 (1문장)"},
+    {"category": "카테고리", "item": "구체적인 아이템명", "reason": "추천 이유 (1문장)"},
+    {"category": "카테고리", "item": "구체적인 아이템명", "reason": "추천 이유 (1문장)"}
+  ]
 }
 
+**중요**: newItemRecommendations는 옷장에 없거나 부족한 아이템만 추천하세요. 기존 옷과 중복되지 않게 해주세요.
 응답은 반드시 JSON만 제공하고, 다른 설명은 추가하지 마세요.`;
 
     // Gemini AI 분석
@@ -77,6 +94,7 @@ ${
       advice: analysis.advice,
       suggestions: analysis.suggestions,
       selectedItems: items,
+      newItemRecommendations: analysis.newItemRecommendations,
     };
   } catch (error) {
     console.error("코디 조합 분석 오류:", error);
@@ -227,11 +245,12 @@ export const recommendSmartOutfit = async (
       new Map(finalItems.map((item) => [item.id, item])).values()
     );
 
-    // AI 분석
+    // AI 분석 (옷장 전체를 전달하여 새 아이템 추천도 함께 받음)
     return await analyzeOutfitCombination(
       uniqueItems.slice(0, 4),
       preferredStyle,
-      temperature
+      temperature,
+      allItems // 옷장 전체 전달
     );
   } catch (error) {
     console.error("스마트 추천 오류:", error);
