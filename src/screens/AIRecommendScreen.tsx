@@ -1660,20 +1660,23 @@ const styles = StyleSheet.create({
   filterContainer: {
     paddingHorizontal: 4,
     marginTop: 12,
+    marginBottom: 8,
     position: "relative",
     zIndex: 100,
+    overflow: "visible", // 드롭다운이 컨테이너 밖으로 표시되도록
   },
   filterButton: {
     flexDirection: "row",
     alignItems: "center",
     alignSelf: "flex-start",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.softCard,
     gap: 6,
+    minHeight: 44, // WCAG 최소 터치 타겟 크기
   },
   filterButtonActive: {
     backgroundColor: colors.black,
@@ -1712,6 +1715,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.divider,
     backgroundColor: "transparent",
+    minHeight: 48, // 드롭다운 아이템 최소 높이
   },
   seasonFilterItemHovered: {
     backgroundColor: colors.softCard,

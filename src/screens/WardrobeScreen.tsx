@@ -442,6 +442,9 @@ export default function WardrobeScreen() {
             <TouchableOpacity
               style={styles.addButton}
               onPress={() => setIsModalVisible(true)}
+              accessibilityRole="button"
+              accessibilityLabel={t("addItemButton")}
+              accessibilityHint="새로운 옷을 옷장에 추가합니다"
             >
               <Ionicons name="add" size={20} color={colors.white} />
               <Text style={styles.addButtonText}>{t("addItemButton")}</Text>
@@ -468,6 +471,8 @@ export default function WardrobeScreen() {
               onChangeText={setSearchQuery}
               onFocus={() => setIsSearchFocused(true)}
               onBlur={() => setIsSearchFocused(false)}
+              accessibilityLabel="옷 검색"
+              accessibilityHint="이름이나 브랜드로 옷을 검색합니다"
             />
           </View>
 
@@ -597,10 +602,14 @@ export default function WardrobeScreen() {
                       key={item.id}
                       style={styles.clothingCard}
                       onPress={() => handleItemClick(item)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${item.name}, ${item.color || ''} ${item.brand || ''}`}
+                      accessibilityHint="탭하여 상세 정보 보기"
                     >
                       <Image
                         source={{ uri: item.imageUrl }}
                         style={styles.clothingImage}
+                        accessibilityIgnoresInvertColors
                       />
                       <View style={styles.clothingInfo}>
                         <Text style={styles.clothingName}>{item.name}</Text>
@@ -675,7 +684,7 @@ export default function WardrobeScreen() {
                             <Ionicons
                               name="close-circle"
                               size={28}
-                              color="#ff4444"
+                              color={colors.error}
                             />
                           </TouchableOpacity>
                         </View>
@@ -1124,12 +1133,13 @@ const styles = StyleSheet.create({
   },
   categoryTab: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 12,
     marginRight: 8,
     borderRadius: 20,
     backgroundColor: colors.softCard,
     borderWidth: 1,
     borderColor: colors.border,
+    minHeight: 44, // WCAG 최소 터치 타겟 크기
   },
   categoryTabActive: {
     backgroundColor: colors.brand,
@@ -1153,13 +1163,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     alignSelf: "flex-start",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.softCard,
     gap: 6,
+    minHeight: 44, // WCAG 최소 터치 타겟 크기
   },
   filterButtonActive: {
     backgroundColor: colors.brand,
@@ -1193,10 +1204,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+    minHeight: 48, // 드롭다운 아이템 최소 높이
   },
   seasonFilterItemHovered: {
     backgroundColor: colors.softCard,
@@ -1228,7 +1240,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: "#666",
+    color: colors.textSecondary,
   },
   grid: {
     flexDirection: "row",
@@ -1238,17 +1250,17 @@ const styles = StyleSheet.create({
   },
   clothingCard: {
     width: "45%",
-    backgroundColor: "#fff",
+    backgroundColor: colors.white,
     borderRadius: 12,
     overflow: "hidden",
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#e0e0e0",
+    borderColor: colors.border,
   },
   clothingImage: {
     width: "100%",
     aspectRatio: 3 / 4,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: colors.softCard,
   },
   clothingInfo: {
     padding: 12,
@@ -1260,12 +1272,12 @@ const styles = StyleSheet.create({
   },
   clothingColor: {
     fontSize: 13,
-    color: "#666",
+    color: colors.textSecondary,
     marginBottom: 2,
   },
   clothingBrand: {
     fontSize: 12,
-    color: "#999",
+    color: colors.textTertiary,
   },
   emptyState: {
     alignItems: "center",
@@ -1275,13 +1287,13 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#999",
+    color: colors.textTertiary,
     marginTop: 16,
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: "#ccc",
+    color: colors.textTertiary,
   },
   // 모바일 모달 컨테이너
   mobileModalContainer: {
@@ -1552,7 +1564,7 @@ const styles = StyleSheet.create({
   detailImage: {
     width: "100%",
     aspectRatio: 3 / 4,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: colors.softCard,
   },
   detailInfo: {
     padding: 20,
@@ -1562,16 +1574,16 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    borderBottomColor: colors.borderLight,
   },
   detailLabel: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#666",
+    color: colors.textSecondary,
   },
   detailValue: {
     fontSize: 15,
-    color: "#000",
+    color: colors.textPrimary,
   },
   detailActions: {
     flexDirection: "row",
@@ -1583,13 +1595,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#000",
+    backgroundColor: colors.brand,
     paddingVertical: 14,
     borderRadius: 12,
     gap: 8,
   },
   editButtonText: {
-    color: "#fff",
+    color: colors.white,
     fontSize: 16,
     fontWeight: "600",
   },
@@ -1604,7 +1616,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   confirmButtonText: {
-    color: "#fff",
+    color: colors.white,
     fontSize: 16,
     fontWeight: "600",
   },
@@ -1613,13 +1625,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#ff4444",
+    backgroundColor: colors.error,
     paddingVertical: 14,
     borderRadius: 12,
     gap: 8,
   },
   deleteButtonText: {
-    color: "#fff",
+    color: colors.white,
     fontSize: 16,
     fontWeight: "600",
   },
