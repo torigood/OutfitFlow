@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Image,
   ActivityIndicator,
   Alert,
+  RefreshControl,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -97,6 +98,7 @@ export default function HomeScreen() {
   const [savedOutfits, setSavedOutfits] = useState<SavedOutfit[]>([]);
   const [savedLoading, setSavedLoading] = useState(false);
   const [savedError, setSavedError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   // 저장된 코디 상세 보기
   const [selectedOutfit, setSelectedOutfit] = useState<SavedOutfit | null>(null);
@@ -109,48 +111,60 @@ export default function HomeScreen() {
   const [allOutfitsLoading, setAllOutfitsLoading] = useState(false);
 
   useFocusEffect(
-    React.useCallback(() => {
+    useCallback(() => {
       let isMounted = true;
-      const load = async () => {
+
+      const loadData = async () => {
         if (!user?.uid) return;
+
         try {
+          // 1. 저장된 코디 불러오기
           setSavedLoading(true);
-          const data = await getSavedOutfits(user.uid, { take: 2 });
+          const savedData = await getSavedOutfits(user.uid, { take: 2 });
+          
+          // 2. 옷장 아이템 불러오기 (여기서 불러와야 실시간 갱신됨!)
+          const wardrobeData = await getClothingItems(user.uid);
+
           if (isMounted) {
-            setSavedOutfits(data);
+            setSavedOutfits(savedData);
+            setWardrobeItems(wardrobeData); // 상태 업데이트
             setSavedError(null);
           }
         } catch (err: any) {
-          console.error("load saved outfits", err);
+          console.error("load home data failed", err);
           if (isMounted) setSavedError(err?.message ?? "Failed");
         } finally {
           if (isMounted) setSavedLoading(false);
         }
       };
-      load();
+
+      loadData();
+
       return () => {
         isMounted = false;
       };
     }, [user?.uid])
   );
 
-  useEffect(() => {
+  // Pull-to-Refresh 핸들러
+  const onRefresh = useCallback(async () => {
     if (!user?.uid) return;
 
-    let isMounted = true;
-    (async () => {
-      try {
-        const items: ClothingItem[] = await getClothingItems(user.uid);
-        if (isMounted) setWardrobeItems(items);
-      } catch (error) {
-        console.error("옷장 불러오기 실패:", error);
-        if (isMounted) setWardrobeItems([]);
-      }
-    })();
-
-    return () => {
-      isMounted = false;
-    };
+    setRefreshing(true);
+    try {
+      const [savedData, wardrobeData] = await Promise.all([
+        getSavedOutfits(user.uid, { take: 2 }),
+        getClothingItems(user.uid),
+      ]);
+      setSavedOutfits(savedData);
+      setWardrobeItems(wardrobeData);
+      setSavedError(null);
+    } catch (err: any) {
+      console.error("refresh failed", err);
+      setSavedError(err?.message ?? "Failed to refresh");
+    } finally {
+      setRefreshing(false);
+    }
   }, [user?.uid]);
 
   // 저장된 코디 상세 보기 열기
@@ -169,7 +183,7 @@ export default function HomeScreen() {
       [
         { text: t("cancel"), style: "cancel" },
         {
-          text: t("delete"),
+          text: t("deleteText"),
           style: "destructive",
           onPress: async () => {
             try {
@@ -213,6 +227,14 @@ export default function HomeScreen() {
           style={styles.scroll}
           showsVerticalScrollIndicator={false}
           key={language}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[colors.brand]} // Android
+              tintColor={colors.brand} // iOS
+            />
+          }
         >
           {/* Quick Actions */}
           <View style={styles.section}>
@@ -223,6 +245,8 @@ export default function HomeScreen() {
                   icon={<Sparkles size={28} color={colors.textPrimary} />}
                   size={72}
                   onPress={() => navigation.navigate("AIRecommend")}
+                  accessibilityLabel={t("aiRecommend")}
+                  accessibilityHint="AI 코디 추천 화면으로 이동"
                 />
                 <Text style={styles.actionLabel}>{t("aiRecommend")}</Text>
               </View>
@@ -231,6 +255,8 @@ export default function HomeScreen() {
                   icon={<Shirt size={28} color={colors.textPrimary} />}
                   size={72}
                   onPress={() => navigation.navigate("Wardrobe")}
+                  accessibilityLabel={t("wardrobe")}
+                  accessibilityHint="내 옷장 화면으로 이동"
                 />
                 <Text style={styles.actionLabel}>{t("wardrobe")}</Text>
               </View>
@@ -239,6 +265,8 @@ export default function HomeScreen() {
                   icon={<TrendingUp size={28} color={colors.textPrimary} />}
                   size={72}
                   onPress={() => navigation.navigate("Community")}
+                  accessibilityLabel={t("trends")}
+                  accessibilityHint="트렌드 화면으로 이동"
                 />
                 <Text style={styles.actionLabel}>{t("trends")}</Text>
               </View>
@@ -247,6 +275,8 @@ export default function HomeScreen() {
                   icon={<ShoppingCart size={28} color={colors.textPrimary} />}
                   size={72}
                   onPress={() => navigation.navigate("Shopping")}
+                  accessibilityLabel={t("shopping")}
+                  accessibilityHint="쇼핑 화면으로 이동"
                 />
                 <Text style={styles.actionLabel}>{t("shopping")}</Text>
               </View>

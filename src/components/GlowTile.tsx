@@ -13,11 +13,13 @@ interface GlowTileProps {
   icon: React.ReactNode;
   size?: number;
   onPress?: () => void;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
 }
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-export function GlowTile({ icon, size = 88, onPress }: GlowTileProps) {
+export function GlowTile({ icon, size = 88, onPress, accessibilityLabel, accessibilityHint }: GlowTileProps) {
   const pressed = useSharedValue(0);
 
   const animatedStyle = useAnimatedStyle(() => {
@@ -54,6 +56,9 @@ export function GlowTile({ icon, size = 88, onPress }: GlowTileProps) {
       onPress={onPress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
     >
       <Animated.View style={[styles.radial, glowStyle]} />
       {icon}
