@@ -228,7 +228,9 @@ export default function AIRecommendScreen() {
     useState(false);
   const isSeasonFilterActive =
     showSeasonFilterDropdown || selectedSeasonFilter !== DEFAULT_SEASON;
-  const filterIconColor = isSeasonFilterActive ? colors.white : colors.white;
+  const filterIconColor = isSeasonFilterActive
+    ? colors.white
+    : colors.textSecondary;
   const analysisItemsSignature = useMemo(() => {
     if (!analysis?.selectedItems?.length) {
       return "";
@@ -537,7 +539,7 @@ export default function AIRecommendScreen() {
                 <Ionicons
                   name={weatherCardData.iconName}
                   size={32}
-                  color="#000"
+                  color={colors.textPrimary}
                 />
                 <View style={styles.weatherInfo}>
                   <Text style={styles.weatherTemp}>
@@ -647,10 +649,10 @@ export default function AIRecommendScreen() {
           activeOpacity={0.7}
         >
           {isLoading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={colors.white} />
           ) : (
             <>
-              <Ionicons name="sparkles" size={20} color="#fff" />
+              <Ionicons name="sparkles" size={20} color={colors.white} />
               <Text style={styles.recommendButtonText}>{t("getAIRec")}</Text>
             </>
           )}
@@ -683,7 +685,7 @@ export default function AIRecommendScreen() {
                       <Ionicons
                         name="sparkles-outline"
                         size={18}
-                        color="#000"
+                        color={colors.textPrimary}
                       />
                       <Text style={styles.newRecommendText}>새 추천</Text>
                     </>
@@ -693,7 +695,7 @@ export default function AIRecommendScreen() {
                   onPress={handleReset}
                   style={styles.resetButton}
                 >
-                  <Ionicons name="close-outline" size={18} color="#666" />
+                  <Ionicons name="close-outline" size={18} color={colors.textTertiary} />
                   <Text style={styles.resetText}>초기화</Text>
                 </TouchableOpacity>
               </View>
@@ -716,8 +718,8 @@ export default function AIRecommendScreen() {
             >
               <Heart
                 size={18}
-                color={savedOutfitId ? colors.brand : colors.white}
-                fill={savedOutfitId ? colors.brand : "transparent"}
+                color={savedOutfitId ? colors.textPrimary : colors.white}
+                fill={savedOutfitId ? colors.textPrimary : "transparent"}
               />
               <Text style={styles.saveButtonText}>
                 {savedOutfitId
@@ -1042,7 +1044,7 @@ export default function AIRecommendScreen() {
 
             {filteredClothes.length === 0 && (
               <View style={styles.emptyState}>
-                <Text style={styles.emptyText}>{t("emeptyItems")}</Text>
+                <Text style={styles.emptyText}>{t("emptyItems")}</Text>
               </View>
             )}
           </ScrollView>
@@ -1066,7 +1068,7 @@ export default function AIRecommendScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: colors.bgPrimary,
   },
   container: {
     flex: 1,
@@ -1079,99 +1081,108 @@ const styles = StyleSheet.create({
     paddingTop: 60,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
+    fontSize: 32,
+    fontWeight: "700",
     marginBottom: 8,
+    color: colors.textPrimary,
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 14,
-    color: "#666",
+    fontSize: 15,
+    color: colors.textSecondary,
   },
   weatherCard: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#f9f9f9",
+    backgroundColor: colors.softCard,
     borderRadius: 16,
-    padding: 16,
-    marginTop: 16,
+    padding: 18,
+    marginTop: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   weatherLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 14,
   },
   weatherInfo: {
     gap: 2,
   },
   weatherTemp: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#000",
+    fontSize: 28,
+    fontWeight: "700",
+    color: colors.textPrimary,
   },
   weatherCondition: {
     fontSize: 14,
-    color: "#666",
+    color: colors.textSecondary,
   },
   weatherRight: {
     alignItems: "flex-end",
     gap: 4,
   },
   weatherDetail: {
-    fontSize: 12,
-    color: "#666",
+    fontSize: 13,
+    color: colors.textTertiary,
   },
   section: {
     paddingHorizontal: 24,
     marginBottom: 32,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "600",
     marginBottom: 16,
+    color: colors.textPrimary,
   },
   styleContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12,
+    gap: 10,
   },
   styleButton: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 24,
-    backgroundColor: "#f5f5f5",
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 30,
+    backgroundColor: colors.softCard,
+    borderWidth: 1,
+    borderColor: colors.border,
     gap: 6,
   },
   styleButtonActive: {
-    backgroundColor: "#000",
+    backgroundColor: colors.black,
+    borderColor: colors.black,
   },
   styleText: {
     fontSize: 14,
-    color: "#666",
+    color: colors.textSecondary,
   },
   styleTextActive: {
-    color: "#fff",
+    color: colors.white,
     fontWeight: "600",
   },
   recommendButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#000",
+    backgroundColor: colors.black,
     marginHorizontal: 24,
     padding: 18,
-    borderRadius: 12,
-    gap: 8,
+    borderRadius: 14,
+    gap: 10,
     marginBottom: 32,
   },
   recommendButtonDisabled: {
-    backgroundColor: "#ccc",
+    backgroundColor: colors.lightGray,
+    opacity: 0.5,
   },
   recommendButtonText: {
-    color: "#fff",
-    fontSize: 16,
+    color: colors.white,
+    fontSize: 17,
     fontWeight: "600",
   },
   resultSection: {
@@ -1191,14 +1202,14 @@ const styles = StyleSheet.create({
   },
   imageScrollView: {
     flexGrow: 0,
-    // width is set dynamically via inline style
   },
   imageScrollContent: {
     paddingHorizontal: 0,
   },
   resultTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "700",
+    color: colors.textPrimary,
   },
   headerButtons: {
     flexDirection: "row",
@@ -1208,31 +1219,32 @@ const styles = StyleSheet.create({
   newRecommendButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    backgroundColor: "#f0f0f0",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
+    gap: 6,
+    backgroundColor: colors.softCard,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   newRecommendText: {
     fontSize: 13,
-    color: "#000",
+    color: colors.textPrimary,
     fontWeight: "600",
   },
   newRecommendButtonDisabled: {
-    backgroundColor: "#e0e0e0",
-    opacity: 0.6,
+    opacity: 0.4,
   },
   resetButton: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    paddingVertical: 6,
-    paddingHorizontal: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
   },
   resetText: {
     fontSize: 13,
-    color: "#666",
+    color: colors.textTertiary,
   },
   refreshButton: {
     flexDirection: "row",
@@ -1241,19 +1253,19 @@ const styles = StyleSheet.create({
   },
   refreshText: {
     fontSize: 14,
-    color: "#666",
+    color: colors.textSecondary,
   },
   matchBadge: {
     alignSelf: "flex-start",
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20,
+    backgroundColor: colors.black,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 24,
     marginBottom: 16,
   },
   matchBadgeText: {
-    color: "#fff",
-    fontSize: 12,
+    color: colors.white,
+    fontSize: 13,
     fontWeight: "600",
   },
   analysisHeader: {
@@ -1266,15 +1278,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    backgroundColor: colors.brand,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: colors.black,
     borderRadius: 999,
   },
   saveButtonDisabled: {
     backgroundColor: colors.softCard,
     borderWidth: 1,
-    borderColor: colors.brand,
+    borderColor: colors.border,
   },
   saveButtonText: {
     color: colors.white,
@@ -1283,35 +1295,34 @@ const styles = StyleSheet.create({
   saveErrorText: {
     marginTop: 8,
     fontSize: 12,
-    color: colors.error ?? "#ff4d4f",
+    color: colors.error,
   },
   itemCard: {
-    // width는 인라인 스타일로 동적 설정
     marginRight: 0,
     marginLeft: 0,
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: "hidden",
     height: 600,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: colors.bgTertiary,
   },
   itemImage: {
     width: "100%",
     height: 500,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: colors.bgSecondary,
   },
   itemInfo: {
-    padding: 16,
-    backgroundColor: "#fff",
+    padding: 18,
+    backgroundColor: colors.bgElevated,
   },
   itemName: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#000",
+    color: colors.textPrimary,
     marginBottom: 4,
   },
   itemCategory: {
     fontSize: 14,
-    color: "#666",
+    color: colors.textSecondary,
   },
   paginationContainer: {
     flexDirection: "row",
@@ -1319,23 +1330,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 16,
     marginBottom: 24,
-    gap: 6,
+    gap: 8,
   },
   paginationDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#ddd",
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.lightGray,
   },
   paginationDotActive: {
-    width: 20,
-    backgroundColor: "#000",
+    width: 24,
+    backgroundColor: colors.black,
   },
   analysisCard: {
-    backgroundColor: "#f9f9f9",
+    backgroundColor: colors.softCard,
     borderRadius: 16,
-    padding: 20,
+    padding: 22,
     marginBottom: 24,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   scoreRow: {
     flexDirection: "row",
@@ -1343,51 +1356,52 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "#e5e5e5",
+    borderBottomColor: colors.divider,
   },
   scoreItem: {
     alignItems: "center",
   },
   scoreLabel: {
     fontSize: 12,
-    color: "#666",
-    marginBottom: 4,
+    color: colors.textTertiary,
+    marginBottom: 6,
   },
   scoreValue: {
-    fontSize: 24,
-    fontWeight: "bold",
+    fontSize: 28,
+    fontWeight: "700",
+    color: colors.textPrimary,
   },
   adviceSection: {
     marginBottom: 20,
   },
   adviceTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "600",
-    marginBottom: 8,
-    color: "#000",
+    marginBottom: 10,
+    color: colors.textPrimary,
   },
   adviceText: {
-    fontSize: 14,
-    color: "#333",
-    lineHeight: 22,
+    fontSize: 15,
+    color: colors.textSecondary,
+    lineHeight: 24,
   },
   suggestionsSection: {
     marginBottom: 20,
   },
   suggestionItem: {
     flexDirection: "row",
-    marginBottom: 6,
+    marginBottom: 8,
   },
   suggestionBullet: {
     fontSize: 14,
-    color: "#666",
+    color: colors.textTertiary,
     marginRight: 8,
   },
   suggestionText: {
     flex: 1,
-    fontSize: 14,
-    color: "#333",
-    lineHeight: 22,
+    fontSize: 15,
+    color: colors.textSecondary,
+    lineHeight: 24,
   },
   colorSection: {
     marginTop: 8,
@@ -1398,67 +1412,69 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   colorChip: {
-    backgroundColor: "#fff",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
+    backgroundColor: colors.white,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: colors.border,
   },
   colorChipText: {
-    fontSize: 12,
-    color: "#666",
+    fontSize: 13,
+    color: colors.textSecondary,
   },
   suggestedItemsSection: {
     marginTop: 32,
     paddingTop: 24,
     borderTopWidth: 1,
-    borderTopColor: "#e5e5e5",
+    borderTopColor: colors.divider,
   },
   suggestedItemsSubtitle: {
     fontSize: 14,
-    color: "#666",
+    color: colors.textTertiary,
     marginBottom: 16,
   },
   suggestedItemCard: {
-    backgroundColor: "#f9f9f9",
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: colors.softCard,
+    borderRadius: 16,
+    padding: 18,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   suggestedItemHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 10,
   },
   suggestedItemName: {
     fontSize: 17,
     fontWeight: "600",
-    color: "#000",
+    color: colors.textPrimary,
     flex: 1,
   },
   suggestedItemCategoryBadge: {
-    backgroundColor: "#fff",
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 12,
+    backgroundColor: colors.bgElevated,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: colors.glassBorder,
   },
   suggestedItemCategoryText: {
     fontSize: 13,
-    color: "#666",
+    color: colors.textSecondary,
   },
   suggestedItemReason: {
-    fontSize: 16,
-    color: "#333",
-    lineHeight: 20,
-  },
-  // 새로운 옷 선택 UI 스타일
-  selectionGuide: {
-    fontSize: 13,
+    fontSize: 15,
     color: colors.textSecondary,
+    lineHeight: 22,
+  },
+  // 옷 선택 UI 스타일
+  selectionGuide: {
+    fontSize: 14,
+    color: colors.textTertiary,
     marginBottom: 16,
   },
   selectedItemsScroll: {
@@ -1472,14 +1488,14 @@ const styles = StyleSheet.create({
   selectedItemImage: {
     width: 100,
     height: 120,
-    borderRadius: 12,
-    backgroundColor: colors.softCard,
+    borderRadius: 14,
+    backgroundColor: colors.bgTertiary,
   },
   removeButton: {
     position: "absolute",
-    top: 4,
-    right: 4,
-    backgroundColor: colors.brand,
+    top: 6,
+    right: 6,
+    backgroundColor: colors.black,
     borderRadius: 12,
     width: 24,
     height: 24,
@@ -1489,13 +1505,13 @@ const styles = StyleSheet.create({
   selectedItemName: {
     marginTop: 8,
     fontSize: 12,
-    color: colors.textOnLight,
+    color: colors.textSecondary,
     textAlign: "center",
   },
   selectButton: {
     backgroundColor: colors.softCard,
-    paddingVertical: 16,
-    borderRadius: 12,
+    paddingVertical: 18,
+    borderRadius: 14,
     alignItems: "center",
     borderWidth: 1,
     borderColor: colors.border,
@@ -1503,11 +1519,12 @@ const styles = StyleSheet.create({
   selectButtonText: {
     fontSize: 16,
     fontWeight: "600",
-    color: colors.brand,
+    color: colors.textPrimary,
   },
   // 바텀시트 스타일
   sheetContainer: {
     maxHeight: "85%",
+    backgroundColor: colors.bgElevated,
   },
   sheetHeader: {
     flexDirection: "row",
@@ -1515,47 +1532,48 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.divider,
   },
   sheetTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: colors.textOnLight,
+    color: colors.textPrimary,
   },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: colors.softCard,
     borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     marginTop: 16,
-    gap: 8,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   searchContainerFocused: {
-    borderColor: "#000",
-    borderWidth: 2,
+    borderColor: colors.black,
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
-    color: colors.textOnLight,
+    fontSize: 16,
+    color: colors.textPrimary,
   },
   categoryScroll: {
     marginTop: 16,
   },
   categoryChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 24,
     backgroundColor: colors.softCard,
     marginRight: 8,
     borderWidth: 1,
     borderColor: colors.border,
   },
   categoryChipActive: {
-    backgroundColor: colors.brand,
-    borderColor: colors.brand,
+    backgroundColor: colors.black,
+    borderColor: colors.black,
   },
   categoryChipText: {
     fontSize: 14,
@@ -1567,7 +1585,7 @@ const styles = StyleSheet.create({
   },
   filterContainer: {
     paddingHorizontal: 20,
-    marginTop: 10,
+    marginTop: 12,
     position: "relative",
     zIndex: 100,
     right: 22,
@@ -1576,64 +1594,63 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     alignSelf: "flex-start",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.brand,
-    gap: 6,
+    backgroundColor: colors.softCard,
+    gap: 8,
   },
   filterButtonActive: {
-    backgroundColor: colors.brand,
-    borderColor: colors.brand,
+    backgroundColor: colors.black,
+    borderColor: colors.black,
   },
   filterText: {
     fontSize: 14,
-    color: colors.white,
+    color: colors.textSecondary,
   },
   filterTextActive: {
     color: colors.white,
   },
   seasonFilterDropdown: {
     position: "absolute",
-    top: 40,
+    top: 44,
     left: 15,
     backgroundColor: colors.white,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.border,
-    minWidth: 120,
+    minWidth: 140,
     zIndex: 1000,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 12,
+    elevation: 8,
     overflow: "hidden",
   },
   seasonFilterItem: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    backgroundColor: colors.softCard,
+    borderBottomColor: colors.divider,
+    backgroundColor: "transparent",
   },
   seasonFilterItemHovered: {
-    backgroundColor: colors.brandLight,
-  },
-  seasonFilterItemPressed: {
     backgroundColor: colors.softCard,
   },
+  seasonFilterItemPressed: {
+    backgroundColor: colors.pressed,
+  },
   seasonFilterItemSelected: {
-    backgroundColor: colors.brand,
-    borderBottomColor: colors.brand,
+    backgroundColor: colors.black,
   },
   seasonFilterText: {
-    fontSize: 14,
+    fontSize: 15,
     color: colors.textSecondary,
   },
   seasonFilterTextActive: {
@@ -1651,27 +1668,27 @@ const styles = StyleSheet.create({
   },
   sheetClothItem: {
     width: "30%",
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 2,
     borderColor: "transparent",
   },
   sheetClothItemSelected: {
-    borderColor: colors.brand,
+    borderColor: colors.black,
   },
   sheetClothItemDisabled: {
-    opacity: 0.4,
+    opacity: 0.3,
   },
   sheetClothImage: {
     width: "100%",
     height: 100,
-    borderRadius: 10,
-    backgroundColor: colors.softCard,
+    borderRadius: 12,
+    backgroundColor: colors.bgTertiary,
   },
   selectedBadge: {
     position: "absolute",
-    top: 4,
-    right: 4,
-    backgroundColor: colors.brand,
+    top: 6,
+    right: 6,
+    backgroundColor: colors.black,
     borderRadius: 12,
     width: 24,
     height: 24,
@@ -1687,7 +1704,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 12,
     textAlign: "center",
-    color: colors.textOnLight,
+    color: colors.textSecondary,
   },
   emptyState: {
     alignItems: "center",
@@ -1695,12 +1712,12 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: colors.textSecondary,
+    color: colors.textTertiary,
   },
   confirmButton: {
-    backgroundColor: colors.brand,
-    paddingVertical: 16,
-    borderRadius: 12,
+    backgroundColor: colors.black,
+    paddingVertical: 18,
+    borderRadius: 14,
     alignItems: "center",
     marginTop: 16,
   },

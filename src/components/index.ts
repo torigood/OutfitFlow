@@ -4,3 +4,4 @@ export { GlassCard } from './GlassCard';
 export { GlowTile } from './GlowTile';
 export { WarmButton } from './WarmButton';
 export { SoftSheet } from './SoftSheet';
+export { DonutChart } from './DonutChart';

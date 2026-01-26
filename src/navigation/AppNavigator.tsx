@@ -39,20 +39,27 @@ const createTabIcon =
     (
       <View
         style={{
-          backgroundColor: focused ? colors.brandLight : "transparent",
-          borderRadius: 15,
-          paddingHorizontal: focused ? 3 : 0,
-          paddingVertical: focused ? 3 : 0,
-          minWidth: 55,
-          minHeight: 55,
           alignItems: "center",
           justifyContent: "center",
+          width: 50,
+          height: 50,
         }}
       >
+        {focused && (
+          <View
+            style={{
+              position: "absolute",
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: colors.softCard,
+            }}
+          />
+        )}
         <Ionicons
-          name={iconName}
-          size={focused ? size + 4 : size}
-          color={focused ? colors.brand : color}
+          name={focused ? iconName : (`${iconName}-outline` as keyof typeof Ionicons.glyphMap)}
+          size={size}
+          color={focused ? colors.black : colors.gray}
         />
       </View>
     );
@@ -140,8 +147,8 @@ export default function AppNavigator() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color="#6C63FF" />
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.bgPrimary }}>
+        <ActivityIndicator size="large" color={colors.black} />
       </View>
     );
   }
@@ -152,21 +159,23 @@ export default function AppNavigator() {
         <Tab.Navigator
           screenOptions={{
             headerShown: false,
-            tabBarActiveTintColor: colors.brand,
-            tabBarInactiveTintColor: colors.textSecondary,
+            tabBarActiveTintColor: colors.black,
+            tabBarInactiveTintColor: colors.gray,
             tabBarStyle: {
-              backgroundColor: colors.white,
-              borderTopColor: colors.border,
-              height: 72,
-              paddingTop: 10,
-              paddingBottom: 12,
+              backgroundColor: colors.bgPrimary,
+              borderTopColor: colors.borderDefault,
+              borderTopWidth: 1,
+              height: 85,
+              paddingTop: 8,
+              paddingBottom: 20,
             },
             tabBarLabelStyle: {
-              fontSize: 12,
-              fontWeight: "600",
+              fontSize: 11,
+              fontWeight: "500",
+              marginTop: 4,
             },
             tabBarIconStyle: {
-              marginBottom: -4,
+              marginBottom: 0,
             },
           }}
         >

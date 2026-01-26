@@ -1,35 +1,50 @@
 import React from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
-import { colors } from '../theme/colors';
+import { BlurView } from 'expo-blur';
+import { colors, shadows } from '../theme/colors';
 
 interface GlassCardProps {
   children: React.ReactNode;
   style?: any;
+  intensity?: number;
 }
 
-export const GlassCard = ({ children, style }: GlassCardProps) => (
-  <View style={[styles.container, style]}>
-    <View style={styles.inner}>{children}</View>
-  </View>
-);
+export const GlassCard = ({ children, style, intensity = 60 }: GlassCardProps) => {
+  if (Platform.OS === 'ios') {
+    return (
+      <View style={[styles.container, style]}>
+        <BlurView intensity={intensity} tint="light" style={styles.blurView}>
+          <View style={styles.inner}>{children}</View>
+        </BlurView>
+      </View>
+    );
+  }
+
+  // Android fallback
+  return (
+    <View style={[styles.container, styles.androidFallback, style]}>
+      <View style={styles.inner}>{children}</View>
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 22,
+    borderRadius: 16,
     overflow: 'hidden',
     margin: 12,
-    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.borderDefault,
     ...Platform.select({
-      ios: {
-        shadowColor: colors.shadow,
-        shadowOpacity: 0.1,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: 4 },
-      },
-      android: {
-        elevation: 4,
-      },
+      ios: shadows.medium,
+      android: { elevation: shadows.medium.elevation },
     }),
+  },
+  blurView: {
+    flex: 1,
+  },
+  androidFallback: {
+    backgroundColor: colors.cardBg,
   },
   inner: {
     padding: 16,

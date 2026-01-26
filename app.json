@@ -12,7 +12,17 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "bundleIdentifier": "com.OutfitFlow.firebase",
+      "supportsTablet": true,
+      "infoPlist": {
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "com.googleusercontent.apps.504972635537-a621tgqcpahvhfs78a5srpekvod5hc1cE"
+            ]
+          }
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -24,6 +34,7 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      "@react-native-google-signin/google-signin",
       "expo-asset",
       "expo-font",
       [

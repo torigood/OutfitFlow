@@ -124,319 +124,221 @@ const LoginScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+    <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
-        style={styles.container}
+        style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        {/* Warm Background */}
-        <LinearGradient
-          colors={[colors.bgTop, colors.bgBottom]}
-          style={StyleSheet.absoluteFill}
-        />
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          >
+            <Text style={styles.backText}>{t("authBack") || "Back"}</Text>
+          </TouchableOpacity>
+        </View>
 
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
         >
-          {/* Back Button */}
-          <TouchableOpacity
-            onPress={() => {
-              navigation.reset({
-                index: 0,
-                routes: [{ name: "Landing" }],
-              });
-            }}
-            style={styles.backButton}
-          >
-            <Text style={styles.backButtonText}>{t("authBack")}</Text>
-          </TouchableOpacity>
+          <View style={styles.titleSection}>
+            <Text style={styles.title}>{t("loginTitle")}</Text>
+            <Text style={styles.subtitle}>{t("loginSubtitle")}</Text>
+          </View>
 
-          {/* Login Card */}
-          <View style={styles.card}>
-            {/* Logo */}
-            <View style={styles.logoSection}>
-              <LinearGradient
-                colors={[colors.brand, colors.brandLight]}
-                style={styles.logoIcon}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
+          <View style={styles.form}>
+            {/* 이메일 입력 */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>{t("loginEmailLabel")}</Text>
+              <TextInput
+                style={styles.input}
+                placeholder={placeholders.email}
+                placeholderTextColor={colors.textTertiary}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
+
+            {/* 비밀번호 입력 */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>{t("loginPasswordLabel")}</Text>
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  ref={passwordInputRef}
+                  style={[styles.input, { flex: 1, borderWidth: 0 }]}
+                  placeholder={placeholders.password}
+                  placeholderTextColor={colors.textTertiary}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.eyeIcon}
+                >
+                  {showPassword ? (
+                    <Eye size={20} color={colors.textSecondary} />
+                  ) : (
+                    <EyeOff size={20} color={colors.textSecondary} />
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* 옵션 (기억하기 / 비밀번호 찾기) */}
+            <View style={styles.optionsRow}>
+              <TouchableOpacity
+                style={styles.checkboxContainer}
+                onPress={() => setRememberMe(!rememberMe)}
               >
-                <Sparkles size={24} color={colors.textOnDark} />
-              </LinearGradient>
-              <Text style={styles.logoText}>OutfitFlow</Text>
-            </View>
-
-            {/* Title */}
-            <View style={styles.titleSection}>
-              <Text style={styles.title}>{t("loginTitle")}</Text>
-              <Text style={styles.subtitle}>{t("loginSubtitle")}</Text>
-            </View>
-
-            {/* Form */}
-            <View style={styles.form}>
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>{t("loginEmailLabel")}</Text>
-                <View style={styles.inputWrapper}>
-                  <Mail
-                    size={20}
-                    color={colors.textTertiary}
-                    style={styles.inputIcon}
-                  />
-                  <TextInput
-                    style={styles.input}
-                    placeholder={placeholders.email}
-                    placeholderTextColor={colors.textTertiary}
-                    value={email}
-                    onChangeText={setEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoComplete="email"
-                    editable={!loading}
-                  />
-                </View>
-              </View>
-
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>{t("loginPasswordLabel")}</Text>
-                <View style={styles.inputWrapper}>
-                  <Lock
-                    size={20}
-                    color={colors.textTertiary}
-                    style={styles.inputIcon}
-                  />
-                  <TextInput
-                    ref={passwordInputRef}
-                    style={styles.input}
-                    placeholder={placeholders.password}
-                    placeholderTextColor={colors.textTertiary}
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry={!showPassword}
-                    autoComplete="password"
-                    editable={!loading}
-                  />
-                  <TouchableOpacity
-                    onPress={() => {
-                      setShowPassword(!showPassword);
-                      setTimeout(() => passwordInputRef.current?.focus(), 0);
-                    }}
-                    disabled={loading}
-                    style={styles.eyeIcon}
-                  >
-                    {showPassword ? (
-                      <Eye size={20} color={colors.textTertiary} />
-                    ) : (
-                      <EyeOff size={20} color={colors.textTertiary} />
-                    )}
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              <View style={styles.optionsRow}>
-                <TouchableOpacity
-                  style={styles.checkboxContainer}
-                  onPress={() => setRememberMe(!rememberMe)}
-                  disabled={loading}
+                <View
+                  style={[
+                    styles.checkbox,
+                    rememberMe && styles.checkboxChecked,
+                  ]}
                 >
-                  <View style={styles.checkbox}>
-                    {rememberMe && <Text style={styles.checkmark}>✓</Text>}
-                  </View>
-                  <Text style={styles.checkboxLabel}>
-                    {t("loginRememberMe")}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => navigation.navigate("ForgotPassword")}
-                  disabled={loading}
-                >
-                  <Text style={styles.forgotPassword}>
-                    {t("loginForgotPassword")}
-                  </Text>
-                </TouchableOpacity>
-              </View>
+                  {rememberMe && <Text style={styles.checkmark}>✓</Text>}
+                </View>
+                <Text style={styles.optionText}>{t("loginRememberMe")}</Text>
+              </TouchableOpacity>
 
               <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={handleEmailLogin}
-                disabled={loading}
+                onPress={() => navigation.navigate("ForgotPassword")}
               >
-                <LinearGradient
-                  colors={[colors.brand, colors.brandLight]}
-                  style={styles.loginButton}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                >
-                  {loading ? (
-                    <ActivityIndicator color={colors.textOnDark} />
-                  ) : (
-                    <Text style={styles.loginButtonText}>
-                      {t("loginButton")}
-                    </Text>
-                  )}
-                </LinearGradient>
+                <Text style={styles.forgotText}>
+                  {t("loginForgotPassword")}
+                </Text>
               </TouchableOpacity>
             </View>
 
-            {/* Divider */}
+            {/* 메인 로그인 버튼 */}
+            <TouchableOpacity
+              style={styles.loginButton}
+              onPress={handleEmailLogin}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color={colors.white} />
+              ) : (
+                <Text style={styles.loginButtonText}>{t("loginButton")}</Text>
+              )}
+            </TouchableOpacity>
+
+            {/* 소셜 로그인 구분선 */}
             <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>{t("authDividerText")}</Text>
-              <View style={styles.dividerLine} />
+              <View style={styles.line} />
+              <Text style={styles.dividerText}>{t("authDividerText") || "OR"}</Text>
+              <View style={styles.line} />
             </View>
 
-            {/* Google Login */}
+            {/* 구글 로그인 */}
             <TouchableOpacity
               style={styles.googleButton}
               onPress={handleGoogleLogin}
-              disabled={loading}
             >
-              <Text style={styles.googleIcon}>G</Text>
+              {/* Google G 로고는 텍스트나 아이콘으로 대체 */}
+              <Text style={styles.googleText}>G</Text>
               <Text style={styles.googleButtonText}>
                 {t("authGoogleButton")}
               </Text>
             </TouchableOpacity>
-
-            {/* Signup Link */}
-            <View style={styles.signupSection}>
-              <Text style={styles.signupText}>{t("loginSignupPrompt")} </Text>
-              <TouchableOpacity
-                onPress={() => navigation.navigate("Signup")}
-                disabled={loading}
-              >
-                <Text style={styles.signupLink}>{t("loginSignupLink")}</Text>
-              </TouchableOpacity>
-            </View>
           </View>
 
-          {/* Footer */}
+          {/* 하단 회원가입 링크 */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>{t("authFooterPrefix")}</Text>
-            <View style={styles.footerLinks}>
-              <TouchableOpacity>
-                <Text style={styles.footerLink}>{t("legalTerms")}</Text>
-              </TouchableOpacity>
-              <Text style={styles.footerText}> {t("commonAnd")} </Text>
-              <TouchableOpacity>
-                <Text style={styles.footerLink}>{t("legalPrivacy")}</Text>
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.footerText}>{t("authFooterSuffix")}</Text>
+            <Text style={styles.footerText}>
+              {t("loginSignupPrompt")}{" "}
+              <Text
+                style={styles.signupLink}
+                onPress={() => navigation.navigate("Signup")}
+              >
+                {t("loginSignupLink")}
+              </Text>
+            </Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.bgTop,
-  },
   container: {
     flex: 1,
+    backgroundColor: colors.bgPrimary,
   },
-  scrollContent: {
-    flexGrow: 1,
-    padding: 16,
-    paddingTop: 48,
+  header: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
   backButton: {
-    marginBottom: 28,
+    padding: 8,
   },
-  backButtonText: {
-    paddingTop: 18,
+  backText: {
     fontSize: 16,
-    color: colors.textOnDark,
     fontWeight: "500",
+    color: colors.textPrimary,
   },
-  card: {
-    backgroundColor: colors.cardBg,
-    borderRadius: 24,
-    padding: 32,
-    shadowColor: colors.brand,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 24,
-    elevation: 8,
-  },
-  logoSection: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 12,
-    marginBottom: 32,
-  },
-  logoIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  logoIconText: {
-    fontSize: 24,
-  },
-  logoText: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: colors.textOnLight,
+  scrollContent: {
+    paddingHorizontal: 24,
+    paddingBottom: 40,
   },
   titleSection: {
-    alignItems: "center",
-    marginBottom: 32,
+    marginTop: 20,
+    marginBottom: 40,
   },
   title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: colors.textOnLight,
+    fontSize: 32,
+    fontWeight: "800",
+    color: colors.textPrimary,
     marginBottom: 8,
+    letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 16,
     color: colors.textSecondary,
+    lineHeight: 24,
   },
   form: {
-    marginBottom: 32,
+    gap: 20,
   },
-  inputContainer: {
-    marginBottom: 20,
+  inputGroup: {
+    gap: 8,
   },
   label: {
     fontSize: 14,
     fontWeight: "600",
-    color: colors.textOnLight,
-    marginBottom: 8,
-  },
-  inputWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: colors.lightGray,
-    borderRadius: 12,
-    backgroundColor: colors.white,
-    paddingHorizontal: 12,
-  },
-  inputIcon: {
-    marginRight: 8,
+    color: colors.textPrimary,
+    marginLeft: 4,
   },
   input: {
-    flex: 1,
-    paddingVertical: 14,
+    height: 56,
+    backgroundColor: colors.bgSecondary,
+    borderRadius: 16,
+    paddingHorizontal: 20,
     fontSize: 16,
-    color: colors.textOnLight,
+    color: colors.textPrimary,
+  },
+  passwordContainer: {
+    height: 56,
+    backgroundColor: colors.bgSecondary,
+    borderRadius: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingRight: 16,
+    borderWidth: 0,
   },
   eyeIcon: {
-    padding: 4,
+    padding: 8,
   },
   optionsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 24,
+    marginTop: 4,
   },
   checkboxContainer: {
     flexDirection: "row",
@@ -446,110 +348,96 @@ const styles = StyleSheet.create({
   checkbox: {
     width: 20,
     height: 20,
+    borderRadius: 6,
     borderWidth: 2,
-    borderColor: colors.lightGray,
-    borderRadius: 4,
-    justifyContent: "center",
+    borderColor: colors.border,
     alignItems: "center",
+    justifyContent: "center",
+  },
+  checkboxChecked: {
+    backgroundColor: colors.brand,
+    borderColor: colors.brand,
   },
   checkmark: {
-    color: colors.brand,
-    fontSize: 14,
-    fontWeight: "bold",
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: "800",
   },
-  checkboxLabel: {
+  optionText: {
     fontSize: 14,
     color: colors.textSecondary,
   },
-  forgotPassword: {
+  forgotText: {
     fontSize: 14,
-    color: colors.brand,
-    fontWeight: "500",
+    fontWeight: "600",
+    color: colors.textPrimary,
   },
   loginButton: {
-    paddingVertical: 14,
-    borderRadius: 12,
+    height: 56,
+    backgroundColor: colors.brand,
+    borderRadius: 28,
     alignItems: "center",
+    justifyContent: "center",
+    marginTop: 12,
     shadowColor: colors.brand,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 4,
   },
   loginButtonText: {
-    color: colors.textOnDark,
-    fontSize: 16,
-    fontWeight: "bold",
+    fontSize: 17,
+    fontWeight: "700",
+    color: colors.white,
   },
   divider: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 32,
+    marginVertical: 12,
   },
-  dividerLine: {
+  line: {
     flex: 1,
     height: 1,
-    backgroundColor: colors.lightGray,
+    backgroundColor: colors.border,
   },
   dividerText: {
     paddingHorizontal: 16,
-    fontSize: 14,
-    color: colors.textSecondary,
-    backgroundColor: colors.lightGray,
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.textTertiary,
   },
   googleButton: {
+    height: 56,
+    backgroundColor: colors.white,
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: colors.border,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor: colors.lightGray,
-    borderRadius: 12,
-    paddingVertical: 14,
-    backgroundColor: colors.white,
-    marginBottom: 32,
+    gap: 10,
   },
-  googleIcon: {
-    fontSize: 20,
+  googleText: {
+    fontSize: 18,
     fontWeight: "bold",
-    color: "#4285F4",
-    marginRight: 8,
+    color: "#DB4437", // Google Brand Color
   },
   googleButtonText: {
     fontSize: 16,
-    color: colors.textOnLight,
-    fontWeight: "500",
+    fontWeight: "600",
+    color: colors.textPrimary,
   },
-  signupSection: {
-    flexDirection: "row",
-    justifyContent: "center",
+  footer: {
+    marginTop: 40,
     alignItems: "center",
   },
-  signupText: {
+  footerText: {
     fontSize: 14,
     color: colors.textSecondary,
   },
   signupLink: {
-    fontSize: 14,
-    color: colors.brand,
-    fontWeight: "600",
-  },
-  footer: {
-    alignItems: "center",
-    marginTop: 32,
-    marginBottom: 16,
-  },
-  footerText: {
-    fontSize: 12,
-    color: colors.textOnDark,
-    opacity: 0.7,
-  },
-  footerLinks: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  footerLink: {
-    fontSize: 12,
-    color: colors.textOnDark,
+    fontWeight: "700",
+    color: colors.textPrimary,
     textDecorationLine: "underline",
   },
 });

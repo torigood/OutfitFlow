@@ -134,8 +134,8 @@ export function SoftSheet({ open, onClose, children }: SoftSheetProps) {
       >
         <Pressable style={{ flex: 1 }} onPress={onClose}>
           <BlurView
-            tint="dark"
-            intensity={20}
+            tint="light"
+            intensity={30}
             style={StyleSheet.absoluteFill}
           />
         </Pressable>
@@ -163,29 +163,32 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    padding: 16,
+    padding: 20,
     height: "85%",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    backgroundColor: colors.white,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    backgroundColor: colors.bgElevated,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    borderBottomWidth: 0,
     ...Platform.select({
       ios: {
         shadowColor: colors.black,
-        shadowOpacity: 0.16,
-        shadowRadius: 14,
-        shadowOffset: { width: 0, height: -6 },
+        shadowOpacity: 0.4,
+        shadowRadius: 20,
+        shadowOffset: { width: 0, height: -8 },
       },
       android: {
-        elevation: 18,
+        elevation: 24,
       },
     }),
   },
   handle: {
     alignSelf: "center",
-    width: 42,
+    width: 40,
     height: 5,
     borderRadius: 3,
     backgroundColor: colors.lightGray,
-    marginBottom: 10,
+    marginBottom: 12,
   },
 });

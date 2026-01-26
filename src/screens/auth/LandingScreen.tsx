@@ -90,357 +90,274 @@ export default function LandingScreen() {
     return () => clearInterval(timer);
   }, [cardIndex, featuresData.length]);
 
-  return (
+return (
     <SafeAreaView style={styles.container}>
-      {/* Clean Warm Background Gradient */}
-      <LinearGradient
-        colors={[colors.bgTop, colors.bgBottom]}
-        style={StyleSheet.absoluteFill}
-        pointerEvents="none"
-      />
+      {/* 배경은 깔끔한 화이트 톤 유지 */}
+      <View style={styles.bgFill} />
 
-      {/* CONTENT (above blobs) */}
-      <ScrollView
-        style={{ flex: 1, zIndex: 1 }}
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
-        scrollEnabled={false}
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.logoRow}>
-            <LinearGradient
-              colors={[colors.brand, colors.brandLight]}
-              style={styles.logoIcon}
-            >
-              <Sparkles size={20} color={colors.textOnDark} />
-            </LinearGradient>
-            <Text style={styles.logoText}>OutfitFlow</Text>
-          </View>
+      <View style={styles.header}>
+        <View style={styles.logoRow}>
+          <Sparkles size={24} color={colors.brand} />
+          <Text style={styles.logoText}>OutfitFlow</Text>
+        </View>
+        <Pressable onPress={toggleLanguage} style={styles.langButton}>
+          <Globe size={18} color={colors.textSecondary} />
+          <Text style={styles.langText}>
+            {language === "en" ? "EN" : "KR"}
+          </Text>
+        </Pressable>
+      </View>
 
-          <Pressable onPress={() => navigation.navigate("Login")}>
-            <View style={styles.loginButton}>
-              <Text style={styles.loginText}>{t("landingLogin")}</Text>
-            </View>
-          </Pressable>
+      <View style={styles.content}>
+        {/* 히어로 섹션 */}
+        <View style={styles.heroSection}>
+          <Text style={styles.heroTitle}>
+            {"Find Your\nPerfect Style"}
+          </Text>
+          <Text style={styles.heroSubtitle}>
+            {t("landingHeroSubtitle") || "AI가 제안하는 나만의 맞춤 코디"}
+          </Text>
         </View>
 
-        {/* Hero */}
-        <View style={styles.heroWrap}>
-          <Text style={[styles.heroTitle, { fontSize: heroTitleSize }]}>
-            OutfitFlow
-          </Text>
-          <Text style={[styles.heroSubtitle, { fontSize: heroSubtitleSize }]}>
-            {t("landingHeroSubtitle")}
-          </Text>
-          <View style={styles.heroLanguage}>
-            <View style={styles.languageContainer}>
-              <Pressable
-                onPress={toggleLanguage}
-                style={({ pressed }) => [
-                  styles.languageButton,
-                  pressed && styles.languageButtonPressed,
+        {/* 기능 카드 슬라이더 (심플하게 변경) */}
+        <View style={styles.cardContainer}>
+          <Pressable onPress={onCardPress} style={styles.featureCard}>
+            {(() => {
+              const f = featuresData[cardIndex];
+              const Icon = f.Icon;
+              return (
+                <Animated.View
+                  style={[
+                    styles.cardInner,
+                    { transform: [{ scale: scaleAnim }] },
+                  ]}
+                >
+                  <View style={styles.iconCircle}>
+                    <Icon size={32} color={colors.brand} />
+                  </View>
+                  <Text style={styles.featureTitle}>{f.title}</Text>
+                  <Text style={styles.featureDesc}>{f.description}</Text>
+                </Animated.View>
+              );
+            })()}
+          </Pressable>
+
+          {/* 인디케이터 */}
+          <View style={styles.indicatorRow}>
+            {featuresData.map((_, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.indicatorDot,
+                  i === cardIndex && styles.indicatorActive,
                 ]}
-              >
-                <Globe size={16} color={colors.textOnDark} />
-                <View style={styles.languageTexts}>
-                  <Text style={styles.languageLabel}>{t("lang")}</Text>
-                  <Text style={styles.languageCurrent}>
-                    {language === "en" ? "English" : "한국어"}
-                  </Text>
-                </View>
-              </Pressable>
-            </View>
-          </View>
-
-          {/* Feature cards */}
-          <View style={[styles.cardsContainer, styles.cardsCol]}>
-            <Animated.View
-              style={{
-                width: "88%",
-                height: CARD_HEIGHT,
-                alignSelf: "center",
-                transform: [{ scale: scaleAnim }],
-              }}
-            >
-              <Pressable
-                onPress={onCardPress}
-                android_ripple={{ color: "rgba(0,0,0,0.04)" }}
-                style={{ flex: 1 }}
-              >
-                <View style={styles.featureCard}>
-                  {(() => {
-                    const f = featuresData[cardIndex];
-                    const Icon = f.Icon;
-                    return (
-                      <>
-                        <Icon size={36} color={colors.glassLight} />
-                        <Text style={styles.featureTitle}>{f.title}</Text>
-                        <Text style={styles.featureDescription}>
-                          {f.description}
-                        </Text>
-                      </>
-                    );
-                  })()}
-                </View>
-              </Pressable>
-            </Animated.View>
-
-            {/* 인디케이터 */}
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 8,
-              }}
-            >
-              {featuresData.map((_, i) => (
-                <View
-                  key={i}
-                  style={{
-                    width: i === cardIndex ? 20 : 8,
-                    height: 8,
-                    borderRadius: 8,
-                    backgroundColor:
-                      i === cardIndex ? colors.brandLight : `${colors.brand}30`,
-                    opacity: i === cardIndex ? 1 : 0.9,
-                    transform: [{ scale: i === cardIndex ? 1 : 0.95 }],
-                  }}
-                />
-              ))}
-            </View>
-          </View>
-
-          {/* CTA */}
-          <Pressable onPress={() => navigation.navigate("Signup")}>
-            <LinearGradient
-              colors={[colors.brand, colors.brandLight]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.cta}
-            >
-              <Text style={styles.ctaText}>{t("landingCTA")}</Text>
-              <ArrowRight
-                size={18}
-                color={colors.textOnDark}
-                style={{ marginLeft: 8 }}
               />
-            </LinearGradient>
-          </Pressable>
-          <TouchableOpacity
-            onPress={() => navigation.navigate("Login")}
-            style={styles.loginPrompt}
-          >
-            <Text style={styles.loginPromptText}>
-              {t("landingFooterLoginPrompt")}{" "}
-              <Text style={styles.loginPromptLink}>{t("landingLogin")}</Text>
-            </Text>
-          </TouchableOpacity>
+            ))}
+          </View>
         </View>
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>{t("landingFooterText")}</Text>
-          <Pressable onPress={() => navigation.navigate("Login")}>
-            <Text style={styles.footerLink}>{t("landingFooterLink")}</Text>
-          </Pressable>
-        </View>
-      </ScrollView>
+      </View>
+
+      {/* 하단 버튼 영역 */}
+      <View style={styles.bottomSection}>
+        <TouchableOpacity
+          activeOpacity={0.8}
+          style={styles.primaryButton}
+          onPress={() => navigation.navigate("Signup")}
+        >
+          <Text style={styles.primaryButtonText}>{t("landingCTA")}</Text>
+          <ArrowRight size={20} color={colors.white} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.secondaryButton}
+          onPress={() => navigation.navigate("Login")}
+        >
+          <Text style={styles.secondaryButtonText}>
+            {t("landingLogin") || "로그인"}
+          </Text>
+        </TouchableOpacity>
+
+        {/*<View style={styles.footer}>
+          <Text style={styles.footerText}>
+            {t("landingFooterText")}
+            <Text style={styles.linkText}> {t("landingFooterLink")}</Text>
+          </Text>
+        </View>*/}
+
+      </View>
     </SafeAreaView>
   );
 }
 
-/* ---------- styles ---------- */
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bgTop },
-  scroll: { paddingBottom: 20 },
-
+  container: {
+    flex: 1,
+    backgroundColor: colors.bgPrimary,
+  },
+  bgFill: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: colors.bgPrimary,
+  },
   header: {
-    zIndex: 10,
-    marginTop: 20,
-    paddingHorizontal: 28,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    width: "100%",
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    marginBottom: 40,
   },
-  logoRow: { flexDirection: "row", alignItems: "center" },
-  logoIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  logoText: {
-    marginLeft: 12,
-    fontSize: 25,
-    fontWeight: "600",
-    color: colors.textOnDark,
-  },
-
-  heroLanguage: {
-    width: "100%",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  languageContainer: {
-    position: "relative",
-    width: 170,
-    alignContent: "center",
-    paddingLeft: 11,
-  },
-  loginButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    backgroundColor: colors.brandLight,
-    borderRadius: 8,
-  },
-  loginText: { color: colors.textOnLight, fontSize: 16, fontWeight: "500" },
-  languageButton: {
+  logoRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.brandLight,
-    width: 145,
-    paddingLeft: 26,
   },
-  languageButtonPressed: {
-    transform: [{ scale: 0.97 }],
-    justifyContent: "center",
-    paddingRight: 30,
+  logoText: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: colors.textPrimary,
+    letterSpacing: -0.5,
   },
-  languageText: {
-    color: colors.textOnDark,
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  languageTexts: {
-    flexDirection: "column",
-    gap: 2,
-  },
-  languageLabel: {
-    fontSize: 10,
-    color: colors.textOnDark,
-    opacity: 0.8,
-    textAlign: "center",
+  langButton: {
+    flexDirection: "row",
     alignItems: "center",
+    gap: 6,
+    padding: 8,
   },
-  languageCurrent: {
+  langText: {
     fontSize: 14,
-    color: colors.textOnDark,
     fontWeight: "600",
-    textAlign: "center",
+    color: colors.textSecondary,
   },
-
-  heroWrap: {
-    zIndex: 10,
-    alignItems: "center",
+  content: {
+    flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 60,
-    width: "100%",
+  },
+  heroSection: {
+    marginBottom: 40,
   },
   heroTitle: {
-    fontWeight: "400",
-    color: colors.textOnDark,
-    marginBottom: 8,
+    fontSize: 42,
+    fontWeight: "800",
+    color: colors.textPrimary,
+    lineHeight: 50,
+    marginBottom: 12,
     letterSpacing: -1,
   },
-  heroSubtitle: { color: colors.textOnDark, marginBottom: 28, opacity: 0.9 },
-
-  cardsContainer: {
-    width: "100%",
-    height: 360,
-    justifyContent: "center",
-    alignItems: "center",
+  heroSubtitle: {
+    fontSize: 18,
+    color: colors.textSecondary,
+    lineHeight: 26,
   },
-  cardsCol: {
-    flexDirection: "column",
+  cardContainer: {
+    flex: 1,
     alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
     justifyContent: "center",
   },
-
   featureCard: {
-    backgroundColor: colors.brandLight,
-    borderRadius: 20,
+    width: "100%",
+    aspectRatio: 1.1, // 정사각형에 가깝게
+    backgroundColor: colors.bgSecondary,
+    borderRadius: 32,
+    marginBottom: 24,
+    justifyContent: "center",
     alignItems: "center",
-    marginBottom: 1,
-    paddingVertical: 50,
-    paddingHorizontal: 22,
-    zIndex: 10,
-    maxWidth: 280,
-    minHeight: 220,
-    ...Platform.select({
-      ios: {
-        shadowColor: colors.brand,
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.3,
-        shadowRadius: 16,
-      },
-      android: { elevation: 6 },
-    }),
+    // iOS Shadow
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.05,
+    shadowRadius: 20,
+    // Android
+    elevation: 2,
+  },
+  cardInner: {
+    alignItems: "center",
+    padding: 24,
+  },
+  iconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: colors.white,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
   },
   featureTitle: {
     fontSize: 22,
     fontWeight: "700",
-    color: colors.textOnLight,
-    marginTop: 12,
+    color: colors.textPrimary,
     marginBottom: 8,
     textAlign: "center",
-    alignItems: "center",
   },
-  featureDescription: {
+  featureDesc: {
     fontSize: 16,
-    color: colors.textOnDark,
+    color: colors.textSecondary,
     textAlign: "center",
-    lineHeight: 30,
-    alignItems: "center",
+    lineHeight: 24,
   },
-
-  cta: {
-    marginTop: 8,
-    paddingVertical: 14,
-    paddingHorizontal: 40,
-    borderRadius: 999,
+  indicatorRow: {
+    flexDirection: "row",
+    gap: 8,
+    justifyContent: "center",
+  },
+  indicatorDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.border,
+  },
+  indicatorActive: {
+    width: 20,
+    backgroundColor: colors.brand,
+  },
+  bottomSection: {
+    padding: 24,
+    paddingBottom: Platform.OS === "ios" ? 0 : 24,
+  },
+  primaryButton: {
+    backgroundColor: colors.brand,
+    height: 56,
+    borderRadius: 28,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    zIndex: 10,
-    ...Platform.select({
-      ios: {
-        shadowColor: colors.brand,
-        shadowOffset: { width: 0, height: 12 },
-        shadowOpacity: 0.4,
-        shadowRadius: 20,
-      },
-      android: { elevation: 8 },
-    }),
+    marginBottom: 12,
+    gap: 8,
   },
-  ctaText: { color: colors.textOnDark, fontWeight: "800", fontSize: 16 },
-  loginPrompt: {
-    marginTop: 12,
+  primaryButtonText: {
+    color: colors.white,
+    fontSize: 17,
+    fontWeight: "600",
   },
-  loginPromptText: {
-    fontSize: 14,
-    color: colors.textOnDark,
-    textAlign: "center",
-  },
-  loginPromptLink: {
-    color: colors.brand,
-    fontWeight: "700",
-  },
-
-  footer: {
+  secondaryButton: {
+    height: 56,
+    borderRadius: 28,
     alignItems: "center",
-    marginTop: 28,
-    paddingBottom: 48,
-    width: "100%",
+    justifyContent: "center",
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  footerText: { fontSize: 16, color: colors.textOnDark, opacity: 0.8 },
-  footerLink: { color: colors.textOnDark, marginTop: 6, fontWeight: "700" },
+  secondaryButtonText: {
+    color: colors.textPrimary,
+    fontSize: 17,
+    fontWeight: "600",
+  },
+  footer: {
+    marginTop: 24,
+    alignItems: "center",
+  },
+  footerText: {
+    fontSize: 13,
+    color: colors.textTertiary,
+  },
+  linkText: {
+    fontWeight: "600",
+    color: colors.textPrimary,
+    textDecorationLine: "underline",
+  },
 });

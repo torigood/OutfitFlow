@@ -5,27 +5,25 @@ import {
   sendPasswordResetEmail,
   updateProfile,
   GoogleAuthProvider,
-  signInWithPopup,
   signInWithCredential,
   User,
 } from "firebase/auth";
 import { auth } from "../config/firebase";
-import { Platform } from "react-native";
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as AuthSession from "expo-auth-session";
-import * as WebBrowser from "expo-web-browser";
-import { FIREBASE_WEB_CLIENT_ID, FIREBASE_API_KEY } from "@env";
+import { GOOGLE_WEB_CLIENT_ID } from '@env';
 
 const REMEMBER_ME_KEY = "@outfitflow_remember_me";
 
-// WebBrowser 세션 완료 처리 (모바일 OAuth용)
-WebBrowser.maybeCompleteAuthSession();
-
-// OAuth 설정
-const discovery = {
-  authorizationEndpoint: "https://accounts.google.com/o/oauth2/v2/auth",
-  tokenEndpoint: "https://oauth2.googleapis.com/token",
-};
+// ============================================================
+// 1. 구글 로그인 설정 (Native 방식)
+// ============================================================
+GoogleSignin.configure({
+  // ⚠️ 중요: 여기에 Google Cloud Console의 "웹 클라이언트 ID"를 넣으세요!
+  // iosClientId는 app.json 설정으로 자동 처리되므로 안 넣어도 됩니다.
+  webClientId: GOOGLE_WEB_CLIENT_ID,
+  offlineAccess: true,
+});
 
 /**
  * 이메일/비밀번호로 회원가입
@@ -36,19 +34,10 @@ export const signUpWithEmail = async (
   displayName: string
 ): Promise<User> => {
   try {
-    const userCredential = await createUserWithEmailAndPassword(
-      auth,
-      email,
-      password
-    );
-
-    // 사용자 프로필 업데이트 (이름 설정)
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     if (userCredential.user) {
-      await updateProfile(userCredential.user, {
-        displayName: displayName,
-      });
+      await updateProfile(userCredential.user, { displayName });
     }
-
     return userCredential.user;
   } catch (error: any) {
     throw new Error(getAuthErrorMessage(error.code));
@@ -64,15 +53,8 @@ export const signInWithEmail = async (
   rememberMe: boolean = true
 ): Promise<User> => {
   try {
-    const userCredential = await signInWithEmailAndPassword(
-      auth,
-      email,
-      password
-    );
-
-    // 로그인 유지 설정 저장
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
     await AsyncStorage.setItem(REMEMBER_ME_KEY, rememberMe.toString());
-
     return userCredential.user;
   } catch (error: any) {
     throw new Error(getAuthErrorMessage(error.code));
@@ -80,66 +62,45 @@ export const signInWithEmail = async (
 };
 
 /**
- * Google 계정으로 로그인 (웹/모바일 모두 지원 - Expo Go 호환)
+ * Google 계정으로 로그인 (Native 방식)
  */
 export const signInWithGoogle = async (
   rememberMe: boolean = true
 ): Promise<User> => {
   try {
-    if (Platform.OS === "web") {
-      // 웹: Firebase Web SDK 사용
-      const provider = new GoogleAuthProvider();
-      const userCredential = await signInWithPopup(auth, provider);
-      await AsyncStorage.setItem(REMEMBER_ME_KEY, rememberMe.toString());
-      return userCredential.user;
-    } else {
-      // 모바일: Expo AuthSession 사용 (Expo Go 호환)
-      const redirectUri = AuthSession.makeRedirectUri({
-        scheme: `com.outfitflow.app`,
-      });
+    // 1. Play Services 확인 (Android 필수, iOS는 통과)
+    await GoogleSignin.hasPlayServices();
 
-      const request = new AuthSession.AuthRequest({
-        clientId: FIREBASE_WEB_CLIENT_ID,
-        scopes: ["openid", "profile", "email"],
-        redirectUri,
-        responseType: AuthSession.ResponseType.IdToken,
-        usePKCE: false,
-      });
-
-      await request.promptAsync(discovery);
-
-      const result = await request.promptAsync(discovery);
-
-      if (result.type === "success") {
-        const { id_token } = result.params;
-
-        if (!id_token) {
-          throw new Error(
-            "Google 로그인에 실패했습니다. ID Token을 가져올 수 없습니다."
-          );
-        }
-
-        // Firebase credential 생성
-        const googleCredential = GoogleAuthProvider.credential(id_token);
-
-        // Firebase에 로그인
-        const userCredential = await signInWithCredential(
-          auth,
-          googleCredential
-        );
-
-        // Google 로그인은 항상 로그인 유지
-        await AsyncStorage.setItem(REMEMBER_ME_KEY, rememberMe.toString());
-
-        return userCredential.user;
-      } else {
-        throw new Error("Google 로그인이 취소되었습니다.");
-      }
+    // 2. 로그인 시도 (여기서 iOS 시스템 팝업이 뜹니다!)
+    const userInfo = await GoogleSignin.signIn();
+    
+    // 3. 토큰 추출
+    const idToken = (userInfo as any).data?.idToken || (userInfo as any).idToken;
+    
+    if (!idToken) {
+      throw new Error("Google ID Token이 없습니다.");
     }
+
+    // 4. Firebase 자격 증명 생성
+    const googleCredential = GoogleAuthProvider.credential(idToken);
+
+    // 5. Firebase 로그인
+    const userCredential = await signInWithCredential(auth, googleCredential);
+
+    await AsyncStorage.setItem(REMEMBER_ME_KEY, rememberMe.toString());
+    return userCredential.user;
+
   } catch (error: any) {
-    throw new Error(
-      getAuthErrorMessage(error.code) || "Google 로그인에 실패했습니다."
-    );
+    if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+      throw new Error("로그인이 취소되었습니다.");
+    } else if (error.code === statusCodes.IN_PROGRESS) {
+      throw new Error("이미 로그인이 진행 중입니다.");
+    } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+      throw new Error("Google Play 서비스를 사용할 수 없습니다.");
+    } else {
+      console.error("Google Sign-In Error:", error);
+      throw new Error("Google 로그인 실패: " + (error.message || "알 수 없는 오류"));
+    }
   }
 };
 
@@ -149,7 +110,11 @@ export const signInWithGoogle = async (
 export const signOut = async (): Promise<void> => {
   try {
     await firebaseSignOut(auth);
-    // 로그인 유지 설정 초기화
+    try {
+      await GoogleSignin.signOut(); // 구글 세션도 로그아웃
+    } catch (e) {
+      // 구글 로그아웃 실패는 무시 (이미 로그아웃 상태일 수 있음)
+    }
     await AsyncStorage.removeItem(REMEMBER_ME_KEY);
   } catch (error: any) {
     throw new Error("로그아웃에 실패했습니다.");
@@ -180,7 +145,6 @@ export const getCurrentUser = (): User | null => {
 export const checkRememberMe = async (): Promise<boolean> => {
   try {
     const value = await AsyncStorage.getItem(REMEMBER_ME_KEY);
-    // 값이 없으면 true (기본적으로 로그인 유지)
     if (value === null) return true;
     return value === "true";
   } catch (error) {
@@ -193,31 +157,14 @@ export const checkRememberMe = async (): Promise<boolean> => {
  */
 const getAuthErrorMessage = (errorCode: string): string => {
   switch (errorCode) {
-    case "auth/email-already-in-use":
-      return "이미 사용 중인 이메일입니다.";
-    case "auth/invalid-email":
-      return "유효하지 않은 이메일 주소입니다.";
-    case "auth/operation-not-allowed":
-      return "이메일/비밀번호 로그인이 비활성화되어 있습니다.";
-    case "auth/weak-password":
-      return "비밀번호는 최소 6자 이상이어야 합니다.";
-    case "auth/user-disabled":
-      return "비활성화된 계정입니다.";
-    case "auth/user-not-found":
-      return "존재하지 않는 계정입니다.";
-    case "auth/wrong-password":
-      return "잘못된 비밀번호입니다.";
-    case "auth/invalid-credential":
-      return "이메일 또는 비밀번호가 올바르지 않습니다.";
-    case "auth/too-many-requests":
-      return "너무 많은 요청이 발생했습니다. 잠시 후 다시 시도해주세요.";
-    case "auth/network-request-failed":
-      return "네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.";
-    case "auth/popup-closed-by-user":
-      return "로그인 창이 닫혔습니다.";
-    case "auth/cancelled-popup-request":
-      return "로그인 요청이 취소되었습니다.";
-    default:
-      return "인증 오류가 발생했습니다. 다시 시도해주세요.";
+    case "auth/email-already-in-use": return "이미 사용 중인 이메일입니다.";
+    case "auth/invalid-email": return "유효하지 않은 이메일 주소입니다.";
+    case "auth/operation-not-allowed": return "이메일/비밀번호 로그인이 비활성화되어 있습니다.";
+    case "auth/weak-password": return "비밀번호는 최소 6자 이상이어야 합니다.";
+    case "auth/user-disabled": return "비활성화된 계정입니다.";
+    case "auth/user-not-found": return "존재하지 않는 계정입니다.";
+    case "auth/wrong-password": return "잘못된 비밀번호입니다.";
+    case "auth/invalid-credential": return "이메일 또는 비밀번호가 올바르지 않습니다.";
+    default: return "인증 오류가 발생했습니다. 다시 시도해주세요.";
   }
 };

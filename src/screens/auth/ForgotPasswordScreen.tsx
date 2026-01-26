@@ -78,65 +78,46 @@ const ForgotPasswordScreen = () => {
     }
   };
 
-  return (
-    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+return (
+    <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
-        style={styles.container}
+        style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <LinearGradient
-          colors={[colors.bgTop, colors.bgBottom]}
-          style={StyleSheet.absoluteFill}
-        />
-
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={styles.content}>
             <View style={styles.header}>
               <TouchableOpacity
-                onPress={() => {
-                  navigation.reset({
-                    index: 0,
-                    routes: [{ name: "Landing" }],
-                  });
-                }}
+                onPress={() => navigation.goBack()}
                 style={styles.backButton}
               >
-                <Text style={styles.backButtonText}>{t("authBack")}</Text>
+                <Text style={styles.backText}>{t("authBack")}</Text>
               </TouchableOpacity>
               <Text style={styles.title}>{t("forgotTitle")}</Text>
               <Text style={styles.subtitle}>{t("forgotSubtitle")}</Text>
             </View>
 
             <View style={styles.form}>
-              <View style={styles.inputContainer}>
+              <View style={styles.inputGroup}>
                 <Text style={styles.label}>{t("forgotEmailLabel")}</Text>
-                <View style={styles.inputWrapper}>
-                  <Mail
-                    size={20}
-                    color={colors.textTertiary}
-                    style={styles.inputIcon}
-                  />
-                  <TextInput
-                    style={styles.input}
-                    placeholder={emailPlaceholder}
-                    placeholderTextColor={colors.textTertiary}
-                    value={email}
-                    onChangeText={setEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoComplete="email"
-                    editable={!loading}
-                  />
-                </View>
+                <TextInput
+                  style={styles.input}
+                  placeholder={emailPlaceholder}
+                  placeholderTextColor={colors.textTertiary}
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
               </View>
 
               <TouchableOpacity
-                style={[styles.resetButton, loading && styles.buttonDisabled]}
+                style={styles.resetButton}
                 onPress={handleResetPassword}
                 disabled={loading}
               >
                 {loading ? (
-                  <ActivityIndicator color={colors.textOnDark} />
+                  <ActivityIndicator color={colors.white} />
                 ) : (
                   <Text style={styles.resetButtonText}>
                     {t("forgotButton")}
@@ -145,12 +126,9 @@ const ForgotPasswordScreen = () => {
               </TouchableOpacity>
             </View>
 
+            {/* 안내 문구 박스 */}
             <View style={styles.infoBox}>
-              <Info
-                size={20}
-                color={colors.textSecondary}
-                style={styles.infoIcon}
-              />
+              <Info size={20} color={colors.textSecondary} />
               <Text style={styles.infoText}>{t("forgotInfoText")}</Text>
             </View>
           </View>
@@ -158,104 +136,88 @@ const ForgotPasswordScreen = () => {
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.bgTop,
-  },
   container: {
     flex: 1,
+    backgroundColor: colors.bgPrimary,
   },
   content: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingVertical: 40,
   },
   header: {
     marginTop: 20,
-    marginBottom: 32,
+    marginBottom: 40,
   },
   backButton: {
-    marginBottom: 25,
-    marginTop: 5,
+    alignSelf: "flex-start",
+    marginBottom: 20,
+    paddingVertical: 8,
+    paddingRight: 16,
   },
-  backButtonText: {
+  backText: {
     fontSize: 16,
-    color: colors.textOnDark,
-    fontWeight: "600",
+    fontWeight: "500",
+    color: colors.textPrimary,
   },
   title: {
     fontSize: 32,
-    fontWeight: "bold",
-    color: colors.textOnDark,
-    marginBottom: 16,
+    fontWeight: "800",
+    color: colors.textPrimary,
+    marginBottom: 12,
   },
   subtitle: {
     fontSize: 16,
-    color: colors.textOnDark,
+    color: colors.textSecondary,
     lineHeight: 24,
-    opacity: 0.9,
   },
   form: {
-    marginBottom: 24,
+    gap: 24,
   },
-  inputContainer: {
-    marginBottom: 24,
+  inputGroup: {
+    gap: 8,
   },
   label: {
     fontSize: 14,
     fontWeight: "600",
-    color: colors.textOnDark,
-    marginBottom: 8,
-  },
-  inputWrapper: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: colors.lightGray,
-    borderRadius: 12,
-    backgroundColor: colors.white,
-    paddingHorizontal: 12,
-  },
-  inputIcon: {
-    marginRight: 8,
+    color: colors.textPrimary,
+    marginLeft: 4,
   },
   input: {
-    flex: 1,
-    paddingVertical: 12,
+    height: 56,
+    backgroundColor: colors.bgSecondary,
+    borderRadius: 16,
+    paddingHorizontal: 20,
     fontSize: 16,
-    color: colors.textOnLight,
+    color: colors.textPrimary,
   },
   resetButton: {
+    height: 56,
     backgroundColor: colors.brand,
-    paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: 28,
     alignItems: "center",
+    justifyContent: "center",
     shadowColor: colors.brand,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 4,
   },
   resetButtonText: {
-    color: colors.textOnDark,
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  buttonDisabled: {
-    opacity: 0.6,
+    fontSize: 17,
+    fontWeight: "700",
+    color: colors.white,
   },
   infoBox: {
     flexDirection: "row",
-    backgroundColor: colors.cardBg,
-    padding: 16,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  infoIcon: {
-    marginRight: 12,
+    gap: 12,
+    marginTop: 40,
+    padding: 20,
+    backgroundColor: colors.bgSecondary,
+    borderRadius: 16,
+    alignItems: "flex-start",
   },
   infoText: {
     flex: 1,
