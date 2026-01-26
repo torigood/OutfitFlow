@@ -1,20 +1,39 @@
 import React from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
+import { View, Platform, ViewStyle } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { colors, shadows } from '../theme/colors';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface GlassCardProps {
   children: React.ReactNode;
-  style?: any;
+  style?: ViewStyle;
   intensity?: number;
 }
 
 export const GlassCard = ({ children, style, intensity = 60 }: GlassCardProps) => {
+  const { colors, shadows, isDark } = useTheme();
+
+  const containerStyle: ViewStyle = {
+    borderRadius: 16,
+    overflow: 'hidden',
+    margin: 12,
+    borderWidth: 1,
+    borderColor: colors.borderDefault,
+    ...(Platform.OS === 'ios' ? shadows.medium : { elevation: shadows.medium.elevation }),
+  };
+
+  const innerStyle: ViewStyle = {
+    padding: 16,
+  };
+
+  const androidFallbackStyle: ViewStyle = {
+    backgroundColor: colors.cardBg,
+  };
+
   if (Platform.OS === 'ios') {
     return (
-      <View style={[styles.container, style]}>
-        <BlurView intensity={intensity} tint="light" style={styles.blurView}>
-          <View style={styles.inner}>{children}</View>
+      <View style={[containerStyle, style]}>
+        <BlurView intensity={intensity} tint={isDark ? 'dark' : 'light'} style={{ flex: 1 }}>
+          <View style={innerStyle}>{children}</View>
         </BlurView>
       </View>
     );
@@ -22,31 +41,8 @@ export const GlassCard = ({ children, style, intensity = 60 }: GlassCardProps) =
 
   // Android fallback
   return (
-    <View style={[styles.container, styles.androidFallback, style]}>
-      <View style={styles.inner}>{children}</View>
+    <View style={[containerStyle, androidFallbackStyle, style]}>
+      <View style={innerStyle}>{children}</View>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    margin: 12,
-    borderWidth: 1,
-    borderColor: colors.borderDefault,
-    ...Platform.select({
-      ios: shadows.medium,
-      android: { elevation: shadows.medium.elevation },
-    }),
-  },
-  blurView: {
-    flex: 1,
-  },
-  androidFallback: {
-    backgroundColor: colors.cardBg,
-  },
-  inner: {
-    padding: 16,
-  },
-});

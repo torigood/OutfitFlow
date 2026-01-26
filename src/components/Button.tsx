@@ -2,7 +2,6 @@ import React from "react";
 import {
   Text,
   Pressable,
-  StyleSheet,
   Platform,
   ActivityIndicator,
   View,
@@ -10,7 +9,7 @@ import {
   TextStyle,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, shadows } from "../theme/colors";
+import { useTheme } from "../contexts/ThemeContext";
 import { spacing } from "../theme/spacing";
 import { typography } from "../theme/typography";
 
@@ -48,50 +47,84 @@ export const Button = ({
   accessibilityLabel,
   accessibilityHint,
 }: ButtonProps) => {
+  const { colors, shadows } = useTheme();
   const isDisabled = disabled || loading;
+
+  const getShadowStyle = (shadowLevel: typeof shadows.medium): ViewStyle => {
+    if (Platform.OS === "ios") {
+      return shadowLevel;
+    }
+    return { elevation: shadowLevel.elevation };
+  };
 
   const getButtonStyle = (): ViewStyle => {
     switch (variant) {
       case "primary":
-        return styles.primaryBg;
+        return {
+          backgroundColor: colors.brand,
+          ...getShadowStyle(shadows.medium),
+        };
       case "secondary":
-        return styles.secondaryBg;
+        return {
+          backgroundColor: "transparent",
+          borderWidth: 1.5,
+          borderColor: colors.border,
+        };
       case "tertiary":
-        return styles.tertiaryBg;
+        return {
+          backgroundColor: colors.softCard,
+        };
       case "danger":
-        return styles.dangerBg;
+        return {
+          backgroundColor: colors.error,
+          ...getShadowStyle(shadows.medium),
+        };
       case "ghost":
-        return styles.ghostBg;
+        return {
+          backgroundColor: "transparent",
+        };
       default:
-        return styles.primaryBg;
+        return {
+          backgroundColor: colors.brand,
+        };
     }
   };
 
   const getTextStyle = (): TextStyle => {
     switch (variant) {
       case "primary":
-        return styles.primaryText;
-      case "secondary":
-        return styles.secondaryText;
-      case "tertiary":
-        return styles.tertiaryText;
       case "danger":
-        return styles.dangerText;
+        return { color: colors.white };
+      case "secondary":
+      case "tertiary":
+        return { color: colors.textPrimary };
       case "ghost":
-        return styles.ghostText;
+        return { color: colors.brand };
       default:
-        return styles.primaryText;
+        return { color: colors.white };
     }
   };
 
   const getSizeStyle = (): ViewStyle => {
     switch (size) {
       case "small":
-        return styles.sizeSmall;
+        return {
+          paddingVertical: spacing.sm,
+          paddingHorizontal: spacing.md,
+          borderRadius: 8,
+        };
       case "large":
-        return styles.sizeLarge;
+        return {
+          paddingVertical: spacing.lg,
+          paddingHorizontal: spacing.xl,
+          borderRadius: 14,
+        };
       default:
-        return styles.sizeMedium;
+        return {
+          paddingVertical: spacing.md,
+          paddingHorizontal: spacing.lg,
+          borderRadius: 12,
+        };
     }
   };
 
@@ -141,14 +174,27 @@ export const Button = ({
     }
   };
 
+  const baseStyle: ViewStyle = {
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: spacing.minTouchTarget,
+  };
+
+  const pressedStyle: ViewStyle = {
+    opacity: 0.9,
+    transform: [{ scale: 0.98 }],
+    ...getShadowStyle(shadows.small),
+  };
+
   const renderContent = () => {
     if (loading) {
       return (
-        <View style={styles.loadingContainer}>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
           <ActivityIndicator size="small" color={getLoadingColor()} />
           <Text
             style={[
-              styles.txt,
+              { fontWeight: "600" },
               getTextSizeStyle(),
               getTextStyle(),
               { marginLeft: spacing.sm },
@@ -165,14 +211,14 @@ export const Button = ({
       return (
         <View
           style={[
-            styles.contentContainer,
-            iconPosition === "right" && styles.contentReverse,
+            { flexDirection: "row", alignItems: "center" },
+            iconPosition === "right" && { flexDirection: "row-reverse" },
           ]}
         >
           <Ionicons name={icon} size={getIconSize()} color={getIconColor()} />
           <Text
             style={[
-              styles.txt,
+              { fontWeight: "600" },
               getTextSizeStyle(),
               getTextStyle(),
               iconPosition === "left"
@@ -188,7 +234,7 @@ export const Button = ({
     }
 
     return (
-      <Text style={[styles.txt, getTextSizeStyle(), getTextStyle(), textStyle]}>
+      <Text style={[{ fontWeight: "600" }, getTextSizeStyle(), getTextStyle(), textStyle]}>
         {label}
       </Text>
     );
@@ -203,12 +249,12 @@ export const Button = ({
       accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled: isDisabled }}
       style={({ pressed }) => [
-        styles.wrap,
+        baseStyle,
         getButtonStyle(),
         getSizeStyle(),
-        fullWidth && styles.fullWidth,
-        pressed && !isDisabled && styles.pressed,
-        isDisabled && styles.disabled,
+        fullWidth && { width: "100%" },
+        pressed && !isDisabled && pressedStyle,
+        isDisabled && { opacity: 0.5 },
         style,
       ]}
     >
@@ -237,106 +283,5 @@ export const DangerButton = (props: Omit<ButtonProps, "variant">) => (
 export const GhostButton = (props: Omit<ButtonProps, "variant">) => (
   <Button {...props} variant="ghost" />
 );
-
-const styles = StyleSheet.create({
-  wrap: {
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: spacing.minTouchTarget,
-  },
-  fullWidth: {
-    width: "100%",
-  },
-
-  // Variant backgrounds
-  primaryBg: {
-    backgroundColor: colors.brand,
-    ...Platform.select({
-      ios: shadows.medium,
-      android: { elevation: shadows.medium.elevation },
-    }),
-  },
-  secondaryBg: {
-    backgroundColor: "transparent",
-    borderWidth: 1.5,
-    borderColor: colors.border,
-  },
-  tertiaryBg: {
-    backgroundColor: colors.softCard,
-  },
-  dangerBg: {
-    backgroundColor: colors.error,
-    ...Platform.select({
-      ios: shadows.medium,
-      android: { elevation: shadows.medium.elevation },
-    }),
-  },
-  ghostBg: {
-    backgroundColor: "transparent",
-  },
-
-  // Variant text colors
-  primaryText: {
-    color: colors.white,
-  },
-  secondaryText: {
-    color: colors.textPrimary,
-  },
-  tertiaryText: {
-    color: colors.textPrimary,
-  },
-  dangerText: {
-    color: colors.white,
-  },
-  ghostText: {
-    color: colors.brand,
-  },
-
-  // Size variations
-  sizeSmall: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: 8,
-  },
-  sizeMedium: {
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-  },
-  sizeLarge: {
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.xl,
-    borderRadius: 14,
-  },
-
-  // States
-  pressed: {
-    opacity: 0.9,
-    transform: [{ scale: 0.98 }],
-    ...Platform.select({
-      ios: shadows.small,
-      android: { elevation: shadows.small.elevation },
-    }),
-  },
-  disabled: {
-    opacity: 0.5,
-  },
-
-  // Content
-  txt: {
-    fontWeight: "600",
-  },
-  contentContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  contentReverse: {
-    flexDirection: "row-reverse",
-  },
-  loadingContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-});
 
 export default Button;

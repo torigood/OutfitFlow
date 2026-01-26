@@ -1,6 +1,6 @@
 import React from 'react';
-import { Text, Pressable, StyleSheet, Platform } from 'react-native';
-import { colors, shadows } from '../theme/colors';
+import { Text, Pressable, Platform, ViewStyle, TextStyle } from 'react-native';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface WarmButtonProps {
   label: string;
@@ -17,41 +17,74 @@ export const WarmButton = ({
   disabled = false,
   size = 'medium',
 }: WarmButtonProps) => {
-  const getButtonStyle = () => {
+  const { colors, shadows } = useTheme();
+
+  const wrapStyle: ViewStyle = {
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  };
+
+  const getButtonStyle = (): ViewStyle => {
     switch (variant) {
       case 'primary':
-        return styles.primaryBg;
+        return {
+          backgroundColor: colors.black,
+          ...(Platform.OS === 'ios' ? shadows.medium : { elevation: shadows.medium.elevation }),
+        };
       case 'secondary':
-        return styles.secondaryBg;
+        return {
+          backgroundColor: 'transparent',
+          borderWidth: 1.5,
+          borderColor: colors.borderStrong,
+        };
       case 'ghost':
-        return styles.ghostBg;
+        return {
+          backgroundColor: colors.softCard,
+        };
       default:
-        return styles.primaryBg;
+        return {
+          backgroundColor: colors.black,
+        };
     }
   };
 
-  const getTextStyle = () => {
+  const getTextStyle = (): TextStyle => {
     switch (variant) {
       case 'primary':
-        return styles.primaryText;
+        return { color: colors.white };
       case 'secondary':
-        return styles.secondaryText;
       case 'ghost':
-        return styles.ghostText;
+        return { color: colors.textPrimary };
       default:
-        return styles.primaryText;
+        return { color: colors.white };
     }
   };
 
-  const getSizeStyle = () => {
+  const getSizeStyle = (): ViewStyle => {
     switch (size) {
       case 'small':
-        return styles.sizeSmall;
+        return { paddingVertical: 8, paddingHorizontal: 14 };
       case 'large':
-        return styles.sizeLarge;
+        return { paddingVertical: 18, paddingHorizontal: 32 };
       default:
-        return styles.sizeMedium;
+        return { paddingVertical: 14, paddingHorizontal: 24 };
     }
+  };
+
+  const pressedStyle: ViewStyle = {
+    opacity: 0.9,
+    transform: [{ scale: 0.97 }],
+    ...(Platform.OS === 'ios' ? shadows.small : { elevation: shadows.small.elevation }),
+  };
+
+  const disabledStyle: ViewStyle = {
+    opacity: 0.4,
+  };
+
+  const textBaseStyle: TextStyle = {
+    fontWeight: '600',
+    fontSize: 16,
   };
 
   return (
@@ -59,73 +92,14 @@ export const WarmButton = ({
       onPress={onPress}
       disabled={disabled}
       style={({ pressed }) => [
-        styles.wrap,
+        wrapStyle,
         getButtonStyle(),
         getSizeStyle(),
-        pressed && styles.pressed,
-        disabled && styles.disabled,
+        pressed && pressedStyle,
+        disabled && disabledStyle,
       ]}
     >
-      <Text style={[styles.txt, getTextStyle()]}>{label}</Text>
+      <Text style={[textBaseStyle, getTextStyle()]}>{label}</Text>
     </Pressable>
   );
 };
-
-const styles = StyleSheet.create({
-  wrap: {
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  primaryBg: {
-    backgroundColor: colors.black,
-    ...Platform.select({
-      ios: shadows.medium,
-      android: { elevation: shadows.medium.elevation },
-    }),
-  },
-  secondaryBg: {
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: colors.borderStrong,
-  },
-  ghostBg: {
-    backgroundColor: colors.softCard,
-  },
-  primaryText: {
-    color: colors.white,
-  },
-  secondaryText: {
-    color: colors.textPrimary,
-  },
-  ghostText: {
-    color: colors.textPrimary,
-  },
-  sizeSmall: {
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-  },
-  sizeMedium: {
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-  },
-  sizeLarge: {
-    paddingVertical: 18,
-    paddingHorizontal: 32,
-  },
-  pressed: {
-    opacity: 0.9,
-    transform: [{ scale: 0.97 }],
-    ...Platform.select({
-      ios: shadows.small,
-      android: { elevation: shadows.small.elevation },
-    }),
-  },
-  disabled: {
-    opacity: 0.4,
-  },
-  txt: {
-    fontWeight: '600',
-    fontSize: 16,
-  },
-});

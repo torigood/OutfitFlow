@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Platform, Pressable } from 'react-native';
+import { StyleSheet, Platform, Pressable, ViewStyle } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -7,7 +7,7 @@ import Animated, {
   withTiming,
   interpolate,
 } from 'react-native-reanimated';
-import { colors, shadows } from '../theme/colors';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface GlowTileProps {
   icon: React.ReactNode;
@@ -20,6 +20,7 @@ interface GlowTileProps {
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export function GlowTile({ icon, size = 88, onPress, accessibilityLabel, accessibilityHint }: GlowTileProps) {
+  const { colors, shadows } = useTheme();
   const pressed = useSharedValue(0);
 
   const animatedStyle = useAnimatedStyle(() => {
@@ -50,24 +51,9 @@ export function GlowTile({ icon, size = 88, onPress, accessibilityLabel, accessi
     pressed.value = 0;
   };
 
-  return (
-    <AnimatedPressable
-      style={[styles.box, { width: size, height: size }, animatedStyle]}
-      onPress={onPress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
-      accessibilityHint={accessibilityHint}
-    >
-      <Animated.View style={[styles.radial, glowStyle]} />
-      {icon}
-    </AnimatedPressable>
-  );
-}
-
-const styles = StyleSheet.create({
-  box: {
+  const boxStyle: ViewStyle = {
+    width: size,
+    height: size,
     borderRadius: 18,
     backgroundColor: colors.softCard,
     justifyContent: 'center',
@@ -75,17 +61,30 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: colors.borderStrong,
-    ...Platform.select({
-      ios: shadows.medium,
-      android: { elevation: shadows.medium.elevation },
-    }),
-  },
-  radial: {
+    ...(Platform.OS === 'ios' ? shadows.medium : { elevation: shadows.medium.elevation }),
+  };
+
+  const radialStyle: ViewStyle = {
     position: 'absolute',
     width: 100,
     height: 100,
     borderRadius: 999,
     backgroundColor: colors.white,
     opacity: 0.6,
-  },
-});
+  };
+
+  return (
+    <AnimatedPressable
+      style={[boxStyle, animatedStyle]}
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
+    >
+      <Animated.View style={[radialStyle, glowStyle]} />
+      {icon}
+    </AnimatedPressable>
+  );
+}
