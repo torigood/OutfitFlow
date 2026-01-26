@@ -1,4 +1,4 @@
-# OutfitFlow 👗
+# OutfitFlow
 
 > Google Gemini와 OpenWeather 데이터를 결합해 옷장과 날씨를 분석하고 맞춤형 코디를 추천하는 React Native 애플리케이션입니다.
 
