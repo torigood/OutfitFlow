@@ -235,6 +235,15 @@ export const translations = {
     logoutConfirmMessage: "Are you sure you want to log out?",
     languageSetting: "Language",
     selectLanguage: "Choose your language",
+
+    // --- Shopping ---
+    shoppingSearching: "Searching products...",
+    shoppingLoading: "Loading...",
+    shoppingEmptySearch: "Enter a search term or select a category",
+    shoppingEmptySaved: "Save products you like",
+    shoppingSearchError: "An error occurred while searching.",
+    shoppingSaveError: "An error occurred while saving.",
+    shoppingDeleteError: "An error occurred while deleting.",
   },
 
   ko: {
@@ -468,6 +477,15 @@ export const translations = {
     logoutConfirmMessage: "정말 로그아웃 하시겠습니까?",
     languageSetting: "언어 설정",
     selectLanguage: "사용할 언어를 선택하세요",
+
+    // --- Shopping ---
+    shoppingSearching: "상품을 검색하는 중...",
+    shoppingLoading: "불러오는 중...",
+    shoppingEmptySearch: "검색어를 입력하거나 카테고리를 선택해주세요",
+    shoppingEmptySaved: "마음에 드는 상품을 저장해보세요",
+    shoppingSearchError: "검색 중 오류가 발생했습니다.",
+    shoppingSaveError: "저장 중 오류가 발생했습니다.",
+    shoppingDeleteError: "삭제 중 오류가 발생했습니다.",
   },
 } as const;
 
