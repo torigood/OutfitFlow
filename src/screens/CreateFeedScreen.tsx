@@ -22,7 +22,10 @@ export default function CreateFeedScreen() {
   const [mainImageUri, setMainImageUri] = useState<string | null>(null);
   const [description, setDescription] = useState("");
   const [uploading, setUploading] = useState(false);
-  const [isModalVisible, setModalVisible] = useState(false); // 모달 상태
+  const [isModalVisible, setModalVisible] = useState(false);
+  
+  // 에러 메시지 상태 추가 (빨간 글씨용)
+  const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadWardrobe() {
@@ -42,7 +45,10 @@ export default function CreateFeedScreen() {
       mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [4, 5], quality: 0.8,
     });
 
-    if (!result.canceled) setMainImageUri(result.assets[0].uri);
+    if (!result.canceled) {
+      setMainImageUri(result.assets[0].uri);
+      setFormError(null); // 이미지를 선택하면 에러 메시지 제거
+    }
   };
 
   const toggleSelection = (item: ClothingItem) => {
@@ -50,32 +56,50 @@ export default function CreateFeedScreen() {
       setSelectedItems((prev) => prev.filter((i) => i.id !== item.id));
     } else {
       if (selectedItems.length >= 5) return Alert.alert("최대 5개까지만 선택 가능해요.");
-      setSelectedItems((prev) => [...prev, item]);
+      setSelectedItems((prev) => {
+        const newItems = [...prev, item];
+        if (newItems.length > 0) setFormError(null); // 아이템을 선택하면 에러 메시지 제거
+        return newItems;
+      });
     }
   };
 
   const handleUpload = async () => {
-    if (!mainImageUri) return Alert.alert("사진을 선택해주세요!");
+    setFormError(null); // 초기화
+
+    // 유효성 검사: 사진과 옷장 아이템 둘 다 없으면 에러
+    if (!mainImageUri && selectedItems.length === 0) {
+      setFormError("사진을 등록하거나 옷장 아이템을 최소 1개 태그해야 합니다.");
+      return;
+    }
+
     if (!description.trim()) return Alert.alert("내용을 입력해주세요.");
     
     setUploading(true);
     try {
-      const uploadedData = await uploadImageToCloudinary(mainImageUri); 
+      let imageUrl = "";
+      
+      // 이미지가 있을 때만 업로드 진행
+      if (mainImageUri) {
+        const uploadedData = await uploadImageToCloudinary(mainImageUri); 
+        imageUrl = uploadedData.url;
+      }
+
       await createFeedPost(user!.uid, user!.displayName || "User", {
-        mainImageUrl: uploadedData.url,
+        mainImageUrl: imageUrl, // 이미지가 없으면 빈 문자열 저장
         items: selectedItems,
         description,
         styleTags: ["OOTD", ...selectedItems.map(i => i.category)],
       });
       navigation.goBack();
     } catch (error) {
+      console.error(error);
       Alert.alert("업로드 실패", "다시 시도해주세요.");
     } finally {
       setUploading(false);
     }
   };
 
-  // 모달 내 옷장 아이템 렌더링
   const renderWardrobeItem = ({ item }: { item: ClothingItem }) => {
     const isSelected = selectedItems.find((i) => i.id === item.id);
     return (
@@ -106,6 +130,15 @@ export default function CreateFeedScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
+        
+        {/* 에러 메시지 표시 영역 (비밀번호 오류 스타일) */}
+        {formError && (
+          <View style={styles.errorContainer}>
+            <Ionicons name="alert-circle" size={16} color="#FF3B30" />
+            <Text style={styles.errorText}>{formError}</Text>
+          </View>
+        )}
+
         {/* 1. 이미지 선택 영역 */}
         <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
           {mainImageUri ? (
@@ -113,7 +146,7 @@ export default function CreateFeedScreen() {
           ) : (
             <View style={styles.imagePlaceholder}>
               <Ionicons name="image-outline" size={48} color="#ccc" />
-              <Text style={styles.placeholderText}>사진을 추가하세요</Text>
+              <Text style={styles.placeholderText}>사진을 추가하세요 (선택)</Text>
             </View>
           )}
         </TouchableOpacity>
@@ -138,7 +171,6 @@ export default function CreateFeedScreen() {
             <Ionicons name="chevron-forward" size={20} color="#ccc" />
           </TouchableOpacity>
           
-          {/* 선택된 아이템 미리보기 가로 스크롤 */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 12 }}>
             {selectedItems.map((item) => (
               <View key={item.id} style={styles.selectedPreview}>
@@ -159,7 +191,12 @@ export default function CreateFeedScreen() {
       <Modal visible={isModalVisible} animationType="slide" presentationStyle="pageSheet">
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setModalVisible(false)}>
+              <Text style={styles.modalCancel}>취소</Text>
+            </TouchableOpacity>
+            
             <Text style={styles.modalTitle}>아이템 선택 ({selectedItems.length}/5)</Text>
+            
             <TouchableOpacity onPress={() => setModalVisible(false)}>
               <Text style={styles.modalDone}>완료</Text>
             </TouchableOpacity>
@@ -178,44 +215,154 @@ export default function CreateFeedScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
   header: {
-    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
-    padding: 16, borderBottomWidth: 1, borderBottomColor: "#eee"
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
   },
-  cancelText: { fontSize: 16, color: "#666" },
-  submitText: { fontSize: 16, fontWeight: "bold", color: "#000" },
-  headerTitle: { fontSize: 16, fontWeight: "600" },
-  
-  content: { padding: 20 },
-  imagePicker: { width: "100%", aspectRatio: 4/5, borderRadius: 12, overflow: "hidden", backgroundColor: "#f9f9f9", marginBottom: 20 },
-  previewImage: { width: "100%", height: "100%" },
-  imagePlaceholder: { flex: 1, justifyContent: "center", alignItems: "center" },
-  placeholderText: { marginTop: 10, color: "#999" },
-
-  input: { fontSize: 16, minHeight: 80, marginBottom: 30 },
-
-  wardrobeSection: { borderTopWidth: 1, borderTopColor: "#f5f5f5", paddingTop: 20 },
+  cancelText: {
+    fontSize: 16,
+    color: "#666",
+  },
+  submitText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#000",
+  },
+  headerTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  content: {
+    padding: 20,
+  },
+  // 에러 메시지 스타일
+  errorContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+    paddingHorizontal: 4,
+  },
+  errorText: {
+    color: "#FF3B30",
+    fontSize: 13,
+    marginLeft: 6,
+    fontWeight: "500",
+  },
+  imagePicker: {
+    width: "100%",
+    aspectRatio: 4 / 5,
+    borderRadius: 12,
+    overflow: "hidden",
+    backgroundColor: "#f9f9f9",
+    marginBottom: 20,
+  },
+  previewImage: {
+    width: "100%",
+    height: "100%",
+  },
+  imagePlaceholder: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  placeholderText: {
+    marginTop: 10,
+    color: "#999",
+  },
+  input: {
+    fontSize: 16,
+    minHeight: 80,
+    marginBottom: 30,
+  },
+  wardrobeSection: {
+    borderTopWidth: 1,
+    borderTopColor: "#f5f5f5",
+    paddingTop: 20,
+  },
   addWardrobeButton: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingVertical: 12
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 12,
   },
-  addButtonText: { flex: 1, marginLeft: 10, fontSize: 16, color: "#333" },
-
-  selectedPreview: { marginRight: 10, position: "relative" },
-  previewThumb: { width: 60, height: 60, borderRadius: 8, backgroundColor: "#eee" },
-  removeBtn: { position: "absolute", top: -5, right: -5, backgroundColor: "#fff", borderRadius: 9 },
-
+  addButtonText: {
+    flex: 1,
+    marginLeft: 10,
+    fontSize: 16,
+    color: "#333",
+  },
+  selectedPreview: {
+    marginRight: 10,
+    position: "relative",
+  },
+  previewThumb: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    backgroundColor: "#eee",
+  },
+  removeBtn: {
+    position: "absolute",
+    top: -5,
+    right: -5,
+    backgroundColor: "#fff",
+    borderRadius: 9,
+  },
   // 모달 스타일
-  modalContainer: { flex: 1, backgroundColor: "#fff" },
-  modalHeader: {
-    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
-    padding: 16, borderBottomWidth: 1, borderBottomColor: "#eee"
+  modalContainer: {
+    flex: 1,
+    backgroundColor: "#fff",
   },
-  modalTitle: { fontSize: 16, fontWeight: "bold" },
-  modalDone: { fontSize: 16, color: colors.bgPrimary || "blue", fontWeight: "600" },
-  modalItem: { flex: 1/3, aspectRatio: 1, margin: 4, borderRadius: 8, overflow: "hidden", backgroundColor: "#f5f5f5" },
-  modalItemSelected: { borderWidth: 3, borderColor: "#000" },
-  modalItemImage: { width: "100%", height: "100%" },
-  checkIcon: { position: "absolute", top: 4, right: 4, backgroundColor: "#fff", borderRadius: 12 },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  modalItem: {
+    flex: 1 / 3,
+    aspectRatio: 1,
+    margin: 4,
+    borderRadius: 8,
+    overflow: "hidden",
+    backgroundColor: "#f5f5f5",
+  },
+  modalItemSelected: {
+    borderWidth: 3,
+    borderColor: "#000",
+  },
+  modalItemImage: {
+    width: "100%",
+    height: "100%",
+  },
+  checkIcon: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+  },
+  modalCancel: {
+    fontSize: 16,
+    color: "#666",
+  },
+  modalDone: {
+    fontSize: 16,
+    color: "#007AFF",
+    fontWeight: "600",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
 });
