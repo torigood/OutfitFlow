@@ -11,12 +11,18 @@ import { useAuth } from "../contexts/AuthContext";
 import { useLanguage } from "../contexts/LanguageContext";
 import { t } from "../localization/i18n";
 import { colors } from "../theme/colors";
+
+// 화면 import
 import HomeScreen from "../screens/HomeScreen";
 import WardrobeScreen from "../screens/WardrobeScreen";
 import AIRecommendScreen from "../screens/AIRecommendScreen";
 import CommunityScreen from "../screens/FeedScreen";
 import ShoppingScreen from "../screens/ShoppingScreen";
 import SettingScreen from "../screens/SettingScreen";
+import CreateFeedScreen from "../screens/CreateFeedScreen";
+import PostDetailScreen from "../screens/postDetailScreen"; 
+
+// Auth 화면 import
 import LandingScreen from "../screens/auth/LandingScreen";
 import LoginScreen from "../screens/auth/LoginScreen";
 import SignupScreen from "../screens/auth/SignupScreen";
@@ -24,6 +30,7 @@ import ForgotPasswordScreen from "../screens/auth/ForgotPasswordScreen";
 
 const Tab = createBottomTabNavigator();
 const AuthStack = createStackNavigator();
+const RootStack = createStackNavigator();
 
 const createTabIcon =
   (iconName: keyof typeof Ionicons.glyphMap) =>
@@ -64,70 +71,91 @@ const createTabIcon =
       </View>
     );
 
-// Auth Stack Navigator
+// 1. 메인 탭 네비게이터
+function MainTabNavigator() {
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: colors.black,
+        tabBarInactiveTintColor: colors.gray,
+        tabBarStyle: {
+          backgroundColor: colors.bgPrimary,
+          borderTopColor: colors.borderDefault,
+          borderTopWidth: 1,
+          height: 85,
+          paddingTop: 8,
+          paddingBottom: 20,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: "500",
+          marginTop: 4,
+        },
+        tabBarIconStyle: {
+          marginBottom: 0,
+        },
+      }}
+    >
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{
+          title: t("homeTab"),
+          tabBarIcon: createTabIcon("home"),
+        }}
+      />
+      <Tab.Screen
+        name="Wardrobe"
+        component={WardrobeScreen}
+        options={{
+          title: t("wardrobeTab"),
+          tabBarIcon: createTabIcon("shirt"),
+        }}
+      />
+      <Tab.Screen
+        name="AIRecommend"
+        component={AIRecommendScreen}
+        options={{
+          title: t("aiTab"),
+          tabBarIcon: createTabIcon("sparkles"),
+        }}
+      />
+      <Tab.Screen
+        name="Community"
+        component={CommunityScreen}
+        options={{
+          title: t("communityTab"),
+          tabBarIcon: createTabIcon("people"),
+        }}
+      />
+      <Tab.Screen
+        name="Shopping"
+        component={ShoppingScreen}
+        options={{
+          title: t("shoppingTab"),
+          tabBarIcon: createTabIcon("cart"),
+        }}
+      />
+      <Tab.Screen
+        name="Settings"
+        component={SettingScreen}
+        options={{
+          title: t("settingsTab"),
+          tabBarIcon: createTabIcon("settings"),
+        }}
+      />
+    </Tab.Navigator>
+  );
+}
+
+// 2. Auth Stack Navigator
 function AuthNavigator() {
   return (
     <AuthStack.Navigator
       screenOptions={{
         headerShown: false,
-        // Smooth transition animations
         ...TransitionPresets.SlideFromRightIOS,
-        transitionSpec: {
-          open: {
-            animation: "spring",
-            config: {
-              stiffness: 1000,
-              damping: 500,
-              mass: 3,
-              overshootClamping: true,
-              restDisplacementThreshold: 0.01,
-              restSpeedThreshold: 0.01,
-            },
-          },
-          close: {
-            animation: "spring",
-            config: {
-              stiffness: 1000,
-              damping: 500,
-              mass: 3,
-              overshootClamping: true,
-              restDisplacementThreshold: 0.01,
-              restSpeedThreshold: 0.01,
-            },
-          },
-        },
-        cardStyleInterpolator: ({ current, next, layouts }) => {
-          return {
-            cardStyle: {
-              transform: [
-                {
-                  translateX: current.progress.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [layouts.screen.width, 0],
-                  }),
-                },
-                {
-                  scale: next
-                    ? next.progress.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [1, 0.95],
-                      })
-                    : 1,
-                },
-              ],
-              opacity: current.progress.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, 1],
-              }),
-            },
-            overlayStyle: {
-              opacity: current.progress.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, 0.3],
-              }),
-            },
-          };
-        },
       }}
     >
       <AuthStack.Screen name="Landing" component={LandingScreen} />
@@ -141,9 +169,9 @@ function AuthNavigator() {
   );
 }
 
+// 3. 메인 AppNavigator
 export default function AppNavigator() {
   const { isAuthenticated, loading } = useAuth();
-  const { language } = useLanguage();
 
   if (loading) {
     return (
@@ -156,79 +184,37 @@ export default function AppNavigator() {
   return (
     <NavigationContainer>
       {isAuthenticated ? (
-        <Tab.Navigator
-          screenOptions={{
-            headerShown: false,
-            tabBarActiveTintColor: colors.black,
-            tabBarInactiveTintColor: colors.gray,
-            tabBarStyle: {
-              backgroundColor: colors.bgPrimary,
-              borderTopColor: colors.borderDefault,
-              borderTopWidth: 1,
-              height: 85,
-              paddingTop: 8,
-              paddingBottom: 20,
-            },
-            tabBarLabelStyle: {
-              fontSize: 11,
-              fontWeight: "500",
-              marginTop: 4,
-            },
-            tabBarIconStyle: {
-              marginBottom: 0,
-            },
-          }}
-        >
-          <Tab.Screen
-            name="Home"
-            component={HomeScreen}
+        // 로그인 상태: RootStack 사용
+        <RootStack.Navigator screenOptions={{ headerShown: false }}>
+          {/* 기본 탭 화면 */}
+          <RootStack.Screen 
+            name="MainTabs" 
+            component={MainTabNavigator} 
+          />
+          
+          {/* 글쓰기 화면 (모달 스타일) */}
+          <RootStack.Screen 
+            name="CreateFeed" 
+            component={CreateFeedScreen}
             options={{
-              title: t("homeTab"),
-              tabBarIcon: createTabIcon("home"),
+              presentation: "modal", 
+              ...TransitionPresets.ModalSlideFromBottomIOS, 
             }}
           />
-          <Tab.Screen
-            name="Wardrobe"
-            component={WardrobeScreen}
-            options={{
-              title: t("wardrobeTab"),
-              tabBarIcon: createTabIcon("shirt"),
+          
+          {/* 상세 페이지 (카드 슬라이드 스타일) */}
+          <RootStack.Screen 
+            name="PostDetail" 
+            component={PostDetailScreen}
+            options={{ 
+              headerShown: false,
+              presentation: "card",
+              ...TransitionPresets.SlideFromRightIOS,
             }}
           />
-          <Tab.Screen
-            name="AIRecommend"
-            component={AIRecommendScreen}
-            options={{
-              title: t("aiTab"),
-              tabBarIcon: createTabIcon("sparkles"),
-            }}
-          />
-          <Tab.Screen
-            name="Community"
-            component={CommunityScreen}
-            options={{
-              title: t("communityTab"),
-              tabBarIcon: createTabIcon("people"),
-            }}
-          />
-          <Tab.Screen
-            name="Shopping"
-            component={ShoppingScreen}
-            options={{
-              title: t("shoppingTab"),
-              tabBarIcon: createTabIcon("cart"),
-            }}
-          />
-          <Tab.Screen
-            name="Settings"
-            component={SettingScreen}
-            options={{
-              title: t("settingsTab"),
-              tabBarIcon: createTabIcon("settings"),
-            }}
-          />
-        </Tab.Navigator>
+        </RootStack.Navigator>
       ) : (
+        // 비로그인 상태
         <AuthNavigator />
       )}
     </NavigationContainer>
