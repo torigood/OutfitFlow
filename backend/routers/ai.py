@@ -92,7 +92,14 @@ async def analyze(request: AnalyzeRequest):
             elif response.status_code == 422:
                 raise HTTPException(status_code=422, detail="AI가 요청을 거부했습니다.")
             elif not response.is_success:
-                error_detail = await response.json() if response.headers.get("content-type") == "application/json" else {}
+                content_type = (response.headers.get("content-type") or "").lower()
+                if "application/json" in content_type:
+                    try:
+                        error_detail = response.json()
+                    except ValueError:
+                        error_detail = {}
+                else:
+                    error_detail = {}
                 raise HTTPException(
                     status_code=response.status_code,
                     detail=f"OpenRouter API 오류: {error_detail.get('error', {}).get('message', response.text)}",
