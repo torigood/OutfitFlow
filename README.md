@@ -1,10 +1,11 @@
 # OutfitFlow
 
-> React Native app that turns your wardrobe and local weather into tailored outfit recommendations powered by Google Gemini.
+> React Native app that turns your wardrobe and local weather into tailored outfit recommendations powered by AI.
 
 ## At a Glance
 
-- AI outfits blend Gemini 2.0 Flash reasoning with OpenWeather data for TPO-aware looks.
+- AI outfits blend OpenRouter's multi-model support with OpenWeather data for TPO-aware looks.
+- FastAPI backend provides flexible AI model selection (GPT-4, Claude, Llama, etc.).
 - Firebase Authentication + Firestore subcollections keep every user’s wardrobe isolated.
 - Expo toolchain, Cloudinary image CDN, and navigation polish deliver native-quality UX.
 
@@ -22,7 +23,7 @@
 
 **AI Outfit Picks**
 
-- Prompted Gemini 2.0 Flash analyzes closet, rules, and colors
+- OpenRouter API with multiple AI models (Claude, GPT-4, Llama) analyzes closet, rules, and colors
 - OpenWeatherMap feeds real-time conditions
 - Generates cards with color harmony and dress-code checks
 
@@ -38,9 +39,9 @@
 | -------- | --------------------------------------------------------- |
 | App      | React Native 0.81, Expo SDK 54, TypeScript                |
 | State/UI | React Context API, React Navigation, Expo Linear Gradient |
-| Backend  | Firebase Authentication & Firestore                       |
+| Backend  | FastAPI (Python), Firebase Authentication & Firestore     |
 | Media    | Cloudinary CDN                                            |
-| AI/Data  | Google Gemini 2.0 Flash, OpenWeatherMap API               |
+| AI/Data  | OpenRouter API (GPT-4, Claude, Llama), OpenWeatherMap API |
 
 ## Quick Start
 
@@ -48,7 +49,17 @@
 git clone https://github.com/torigood/OutfitFlow.git
 cd OutfitFlow
 npm install
-cp .env.example .env   # add Firebase, Cloudinary, Gemini, OpenWeather keys
+cp .env.example .env   # add Firebase, Cloudinary, OpenWeather keys
+
+# Backend setup
+cd backend
+python3 -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env      # add OpenRouter API key
+python -m uvicorn main:app --reload
+
+# Run mobile app (new terminal)
 npx expo run:ios       # requires macOS + simulator
 npx expo run:android   # emulator or USB device
 ```
@@ -57,7 +68,7 @@ npx expo run:android   # emulator or USB device
 
 - Firebase Console: Authentication & Firestore config
 - Cloudinary Dashboard: cloud name + unsigned preset
-- Google AI Studio: Gemini API Key
+- OpenRouter: AI API Key (https://openrouter.ai/keys) - supports GPT-4, Claude, Llama, etc.
 - OpenWeatherMap: Current Weather API Key
 
 ## Folder Snapshot
@@ -69,6 +80,14 @@ src/
 ├─ screens/       # Auth, Wardrobe, AIRecommend, Settings
 ├─ services/      # authService, wardrobeService, fashionAIService, weatherService
 └─ types/         # Shared TypeScript types
+
+backend/
+├─ routers/
+│  ├─ ai.py       # OpenRouter API integration
+│  ├─ image.py    # Image processing
+│  └─ weather.py  # Weather data
+├─ main.py        # FastAPI server
+└─ requirements.txt
 ```
 
 ## Screenshots

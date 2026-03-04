@@ -5,11 +5,21 @@ node_modules/
 
 docs/
 
+# Python backend
+backend/venv/
+backend/__pycache__/
+backend/**/*.pyc
+backend/**/*.pyo
+backend/.env
+
 # Expo
 .expo/
 dist/
 web-build/
 expo-env.d.ts
+
+# IDE
+.vscode/
 
 # Native
 .kotlin/

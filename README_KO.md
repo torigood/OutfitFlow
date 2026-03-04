@@ -1,9 +1,10 @@
 # OutfitFlow
 
-> Google Gemini와 OpenWeather 데이터를 결합해 옷장과 날씨를 분석하고 맞춤형 코디를 추천하는 React Native 애플리케이션입니다.
+> AI와 OpenWeather 데이터를 결합해 옷장과 날씨를 분석하고 맞춤형 코디를 추천하는 React Native 애플리케이션입니다.
 
 ## 한눈에 보기
-- Gemini 2.0 Flash 추론과 OpenWeather 정보를 조합해 기온·날씨·TPO를 고려한 코디 카드 생성.
+- OpenRouter의 멀티 모델 지원(GPT-4, Claude, Llama 등)과 OpenWeather 정보를 조합해 기온·날씨·TPO를 고려한 코디 카드 생성.
+- FastAPI 백엔드로 유연한 AI 모델 선택 가능.
 - Firebase Authentication + Firestore 서브컬렉션으로 사용자별 옷장/설정 데이터 완전 분리.
 - Expo 빌드 파이프라인, Cloudinary 이미지 CDN, 부드러운 내비게이션으로 네이티브급 UX 제공.
 
@@ -17,7 +18,7 @@
 - Cloudinary 업로드 + CDN 썸네일 최적화
 
 **AI 코디 추천**  
-- Gemini 2.0 Flash 프롬프트로 옷장, 드레스코드, 색 조합 분석  
+- OpenRouter API로 다양한 AI 모델(Claude, GPT-4, Llama)을 활용해 옷장, 드레스코드, 색 조합 분석  
 - OpenWeatherMap 실시간 날씨 연동  
 - 어울림/색감/규율을 점검한 코디 카드 출력
 
@@ -31,16 +32,26 @@
 | --- | --- |
 | App | React Native 0.81, Expo SDK 54, TypeScript |
 | State/UI | React Context API, React Navigation, Expo Linear Gradient |
-| Backend | Firebase Authentication & Firestore |
+| Backend | FastAPI (Python), Firebase Authentication & Firestore |
 | Media | Cloudinary CDN |
-| AI/데이터 | Google Gemini 2.0 Flash, OpenWeatherMap API |
+| AI/데이터 | OpenRouter API (GPT-4, Claude, Llama), OpenWeatherMap API |
 
 ## 빠른 시작
 ```bash
 git clone https://github.com/torigood/OutfitFlow.git
 cd OutfitFlow
 npm install
-cp .env.example .env   # Firebase, Cloudinary, Gemini, OpenWeather 키 입력
+cp .env.example .env   # Firebase, Cloudinary, OpenWeather 키 입력
+
+# 백엔드 설정
+cd backend
+python3 -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env      # OpenRouter API 키 입력
+python -m uvicorn main:app --reload
+
+# 모바일 앱 실행 (새 터미널)
 npx expo run:ios       # macOS + iOS 시뮬레이터 필요
 npx expo run:android   # Android 에뮬레이터 또는 실기기
 ```
@@ -48,7 +59,7 @@ npx expo run:android   # Android 에뮬레이터 또는 실기기
 ## 필수 API 키
 - Firebase Console: Authentication + Firestore
 - Cloudinary Dashboard: Cloud name, unsigned preset
-- Google AI Studio: Gemini API Key
+- OpenRouter: AI API 키 (https://openrouter.ai/keys) - GPT-4, Claude, Llama 등 지원
 - OpenWeatherMap: Current Weather API Key
 
 ## 폴더 구조
@@ -59,6 +70,14 @@ src/
 ├─ screens/       # Auth, Wardrobe, AIRecommend, Settings
 ├─ services/      # authService, wardrobeService, fashionAIService, weatherService
 └─ types/         # 공용 타입 정의
+
+backend/
+├─ routers/
+│  ├─ ai.py       # OpenRouter API 연동
+│  ├─ image.py    # 이미지 처리
+│  └─ weather.py  # 날씨 데이터
+├─ main.py        # FastAPI 서버
+└─ requirements.txt
 ```
 
 ## 스크린샷
