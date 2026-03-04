@@ -7,6 +7,7 @@ from pydantic import BaseModel
 router = APIRouter()
 
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
+FALLBACK_MODEL = "llama-2-vision"
 
 
 class AnalyzeRequest(BaseModel):
@@ -19,6 +20,32 @@ async def download_image_bytes(url: str, client: httpx.AsyncClient) -> bytes:
     response = await client.get(url, follow_redirects=True, timeout=30.0)
     response.raise_for_status()
     return response.content
+
+
+def extract_openrouter_error(response: httpx.Response) -> str:
+    content_type = (response.headers.get("content-type") or "").lower()
+    if "application/json" in content_type:
+        try:
+            error_detail = response.json()
+            return error_detail.get("error", {}).get("message", response.text)
+        except ValueError:
+            return response.text
+    return response.text
+
+
+def is_model_error(status_code: int, error_message: str) -> bool:
+    lowered = (error_message or "").lower()
+    if status_code not in (400, 404):
+        return False
+    keywords = [
+        "model",
+        "not found",
+        "no endpoints found",
+        "invalid",
+        "unsupported",
+        "does not exist",
+    ]
+    return any(keyword in lowered for keyword in keywords)
 
 
 @router.post("/analyze")
@@ -62,27 +89,44 @@ async def analyze(request: AnalyzeRequest):
                 "HTTP-Referer": "https://outfitflow.app",  # 선택사항: 요청 추적용
             }
 
-            # 환경변수에서 모델 읽기, 기본값: 무료 모델
-            model_name = os.environ.get("OPENROUTER_MODEL", "llama-2-vision")
-            
-            payload = {
-                "model": model_name,
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": content,
-                    }
-                ],
-                "temperature": 0.7,
-                "max_tokens": 4096,
-                "top_p": 0.9,
-            }
+            # 환경변수 모델 우선 사용, 실패 시 fallback 모델 1회 재시도
+            configured_model = os.environ.get("OPENROUTER_MODEL", FALLBACK_MODEL)
+            model_candidates = [configured_model]
+            if configured_model != FALLBACK_MODEL:
+                model_candidates.append(FALLBACK_MODEL)
 
-            response = await client.post(
-                OPENROUTER_API_URL,
-                json=payload,
-                headers=headers,
-            )
+            response = None
+            last_error_message = ""
+
+            for model_name in model_candidates:
+                payload = {
+                    "model": model_name,
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": content,
+                        }
+                    ],
+                    "temperature": 0.7,
+                    "max_tokens": 4096,
+                    "top_p": 0.9,
+                }
+
+                response = await client.post(
+                    OPENROUTER_API_URL,
+                    json=payload,
+                    headers=headers,
+                )
+
+                if response.is_success:
+                    break
+
+                last_error_message = extract_openrouter_error(response)
+                if not is_model_error(response.status_code, last_error_message):
+                    break
+
+            if response is None:
+                raise HTTPException(status_code=500, detail="OpenRouter 응답을 받지 못했습니다.")
 
             # 에러 처리
             if response.status_code == 401:
@@ -92,17 +136,9 @@ async def analyze(request: AnalyzeRequest):
             elif response.status_code == 422:
                 raise HTTPException(status_code=422, detail="AI가 요청을 거부했습니다.")
             elif not response.is_success:
-                content_type = (response.headers.get("content-type") or "").lower()
-                if "application/json" in content_type:
-                    try:
-                        error_detail = response.json()
-                    except ValueError:
-                        error_detail = {}
-                else:
-                    error_detail = {}
                 raise HTTPException(
                     status_code=response.status_code,
-                    detail=f"OpenRouter API 오류: {error_detail.get('error', {}).get('message', response.text)}",
+                    detail=f"OpenRouter API 오류: {last_error_message or extract_openrouter_error(response)}",
                 )
 
             # 응답 파싱
