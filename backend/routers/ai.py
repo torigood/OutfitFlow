@@ -7,7 +7,7 @@ from pydantic import BaseModel
 router = APIRouter()
 
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
-FALLBACK_MODEL = "llama-2-vision"
+FALLBACK_MODEL = "openrouter/auto"
 
 
 class AnalyzeRequest(BaseModel):
