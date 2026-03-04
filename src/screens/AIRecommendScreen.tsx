@@ -18,6 +18,7 @@ import {
   FlatList, 
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import type { ComponentProps } from "react";
 import { X, Search, Heart } from "lucide-react-native";
@@ -260,39 +261,32 @@ export default function AIRecommendScreen() {
     loadWeather();
   }, []);
 
-  useEffect(() => {
-    if (
-      !user?.uid ||
-      !analysis?.selectedItems?.length ||
-      !analysisItemsSignature
-    ) {
-      setSavedOutfitId(null);
-      return;
-    }
+  // 화면 포커스 시 저장된 코디 상태 재확인 (삭제 후 문제 해결)
+  useFocusEffect(
+    useCallback(() => {
+      if (
+        !user?.uid ||
+        !analysis?.selectedItems?.length ||
+        !analysisItemsSignature
+      ) {
+        return;
+      }
 
-    let isMounted = true;
-    (async () => {
-      try {
-        const existing = await findSavedOutfitByItems(
-          user.uid,
-          analysis.selectedItems.map((item) => item.id)
-        );
-        if (isMounted) {
+      (async () => {
+        try {
+          const existing = await findSavedOutfitByItems(
+            user.uid,
+            analysis.selectedItems.map((item) => item.id)
+          );
           setSavedOutfitId(existing?.id ?? null);
           setSaveError(null);
-        }
-      } catch (error: any) {
-        console.error("saved outfit lookup failed", error);
-        if (isMounted) {
+        } catch (error: any) {
+          console.error("saved outfit lookup failed on focus", error);
           setSaveError(error?.message ?? "Unknown error");
         }
-      }
-    })();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [user?.uid, analysisItemsSignature, analysis]);
+      })();
+    }, [user?.uid, analysisItemsSignature, analysis])
+  );
 
   const loadClothes = async () => {
     if (!user?.uid) return;
@@ -447,6 +441,7 @@ export default function AIRecommendScreen() {
       setSuggestedItems([]);
       setIsLoading(true);
 
+      const totalStart = performance.now();
       console.log("=== AI 추천 시작 ===");
       console.log("시간:", new Date().toISOString());
       console.log("선택된 아이템:", selectedItems.length);
@@ -454,6 +449,7 @@ export default function AIRecommendScreen() {
 
       // 1차: 코디 분석만 빠르게 조회
       console.log("🚀 1차 AI 호출 (코디 분석)");
+      const phase1Start = performance.now();
       const outfitAnalysis = await recommendSmartOutfit(
         selectedItems,
         clothes,
@@ -461,7 +457,8 @@ export default function AIRecommendScreen() {
         weather?.temperature,
         false
       );
-      console.log("✅ 1차 AI 완료");
+      const phase1Time = ((performance.now() - phase1Start) / 1000).toFixed(2);
+      console.log(`✅ 1차 AI 완료 (${phase1Time}초)`);
 
       // 결과 캐싱 (1차 결과)
       cacheRef.current.set(cacheKey, outfitAnalysis);
@@ -474,10 +471,22 @@ export default function AIRecommendScreen() {
       // 쿨다운 시작
       startCooldown();
 
+      // 1차 완료 알림
+      Toast.show({
+        type: "success",
+        text1: "코디 분석 완료",
+        text2: `⚡ ${phase1Time}초 | 구매 추천 로딩 중...`,
+        visibilityTime: 2000,
+      });
+
       // 2차: 새 아이템 추천은 백그라운드에서 조회
+      const phase2Start = performance.now();
       recommendNewItems(clothes, selectedStyle, weather?.temperature)
         .then((newItems) => {
           if (recommendRequestIdRef.current !== requestId) return;
+          const phase2Time = ((performance.now() - phase2Start) / 1000).toFixed(2);
+          const totalTime = ((performance.now() - totalStart) / 1000).toFixed(2);
+          
           setSuggestedItems(newItems);
 
           const currentCached = cacheRef.current.get(cacheKey);
@@ -487,13 +496,22 @@ export default function AIRecommendScreen() {
               newItemRecommendations: newItems,
             });
           }
-          console.log("✅ 2차 AI 완료 (새 아이템 추천)");
+          console.log(`✅ 2차 AI 완료 (${phase2Time}초)`);
+          console.log(`📊 전체 소요 시간: ${totalTime}초 (1차: ${phase1Time}초 + 2차: ${phase2Time}초)`);
+          
+          Toast.show({
+            type: "info",
+            text1: "구매 추천 완료",
+            text2: `🛍️ ${phase2Time}초 | 📊 총 ${totalTime}초`,
+            visibilityTime: 3000,
+          });
         })
         .catch((error) => {
-          console.warn("새 아이템 추천 백그라운드 호출 실패:", error);
+          const phase2Time = ((performance.now() - phase2Start) / 1000).toFixed(2);
+          console.warn(`새 아이템 추천 백그라운드 호출 실패 (${phase2Time}초):`, error);
         });
 
-      console.log("=== AI 추천 완료(1차 표시 완료) ===");
+      console.log(`=== AI 추천 완료(1차 표시 완료, ${phase1Time}초) ===`);
     } catch (error: any) {
       console.error("=== AI 분석 오류 ===", error);
       if (error instanceof Error && error.message.includes("아이템 부족")) {

@@ -11,6 +11,7 @@ export const analyzeWithGemini = async (
   prompt: string
 ): Promise<string> => {
   try {
+    const startTime = performance.now();
     console.log("=== Backend OpenRouter API 호출 시작 ===");
     console.log("이미지 개수:", imageUrls.length);
     console.log("프롬프트 길이:", prompt.length);
@@ -26,6 +27,8 @@ export const analyzeWithGemini = async (
       }),
     });
 
+    const fetchTime = ((performance.now() - startTime) / 1000).toFixed(2);
+
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(
@@ -37,13 +40,18 @@ export const analyzeWithGemini = async (
 
     const data = await response.json();
     const text = data.result || data.message || "";
+    const model = data.model || "unknown";
 
     if (!text || text.trim().length === 0) {
-      throw new Error("AI가 빈 응답을 반환했습니다. 다시 시도해주세요.");
+      throw new Error("예이가 빈 응답을 반환했습니다. 다시 시도해주세요.");
     }
 
+    const totalTime = ((performance.now() - startTime) / 1000).toFixed(2);
+    console.log(`✅ Backend 응답 수신: ${fetchTime}초`);
+    console.log(`🤖 사용 모델: ${model}`);
+    console.log(`📊 총 처리 시간: ${totalTime}초`);
     console.log("AI 응답 길이:", text.length);
-    console.log("AI 응답 미리보기:", text.substring(0, 300));
+    console.log("AI 응답 미리보기:", text.substring(0, 200));
     console.log("=== Backend OpenRouter API 호출 성공 ===");
 
     return text;

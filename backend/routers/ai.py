@@ -97,7 +97,10 @@ async def analyze(request: AnalyzeRequest):
 
         async with httpx.AsyncClient(timeout=timeout_seconds) as client:
             # 이미지를 base64로 변환 (병렬 다운로드)
+            img_start = time.perf_counter()
             image_content_parts = await build_image_content_parts(request.image_urls, client)
+            img_elapsed = int((time.perf_counter() - img_start) * 1000)
+            print(f"[AI] image_download | count={len(request.image_urls)} | elapsed_ms={img_elapsed}")
 
             # 메시지 구성
             content = image_content_parts + [{"type": "text", "text": request.prompt}]
@@ -117,6 +120,7 @@ async def analyze(request: AnalyzeRequest):
 
             response = None
             last_error_message = ""
+            used_model = None
 
             for model_name in model_candidates:
                 payload = {
@@ -132,13 +136,17 @@ async def analyze(request: AnalyzeRequest):
                     "top_p": float(os.environ.get("OPENROUTER_TOP_P", "0.9")),
                 }
 
+                api_start = time.perf_counter()
                 response = await client.post(
                     OPENROUTER_API_URL,
                     json=payload,
                     headers=headers,
                 )
+                api_elapsed = int((time.perf_counter() - api_start) * 1000)
+                print(f"[AI] openrouter_call | model={model_name} | elapsed_ms={api_elapsed}")
 
                 if response.is_success:
+                    used_model = model_name
                     break
 
                 last_error_message = extract_openrouter_error(response)
@@ -169,9 +177,11 @@ async def analyze(request: AnalyzeRequest):
             text = data["choices"][0]["message"]["content"]
             elapsed_ms = int((time.perf_counter() - endpoint_start) * 1000)
             print(
-                f"[AI] analyze done | images={len(request.image_urls)} | prompt_len={len(request.prompt)} | elapsed_ms={elapsed_ms}"
+                f"[AI] analyze_complete | model={used_model} | images={len(request.image_urls)} | "
+                f"prompt_len={len(request.prompt)} | total_ms={elapsed_ms} | "
+                f"img_ms={img_elapsed} | api_ms={api_elapsed}"
             )
-            return {"result": text}
+            return {"result": text, "model": used_model}
 
     except HTTPException:
         raise
