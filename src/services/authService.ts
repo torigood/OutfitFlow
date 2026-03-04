@@ -18,12 +18,17 @@ const REMEMBER_ME_KEY = "@outfitflow_remember_me";
 // ============================================================
 // 1. 구글 로그인 설정 (Native 방식)
 // ============================================================
-GoogleSignin.configure({
-  // ⚠️ 중요: 여기에 Google Cloud Console의 "웹 클라이언트 ID"를 넣으세요!
-  // iosClientId는 app.json 설정으로 자동 처리되므로 안 넣어도 됩니다.
-  webClientId: GOOGLE_WEB_CLIENT_ID,
-  offlineAccess: true,
-});
+try {
+  GoogleSignin.configure({
+    // ⚠️ 중요: 여기에 Google Cloud Console의 "웹 클라이언트 ID"를 넣으세요!
+    // iosClientId는 app.json 설정으로 자동 처리되므로 안 넣어도 됩니다.
+    webClientId: GOOGLE_WEB_CLIENT_ID,
+    offlineAccess: true,
+  });
+} catch (error) {
+  console.warn('⚠️ Google Sign In 초기화 실패:', error);
+  // 네이티브 모듈이 없어도 앱은 작동합니다 (Firebase 로그인만 가능)
+}
 
 /**
  * 이메일/비밀번호로 회원가입
