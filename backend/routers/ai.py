@@ -1,5 +1,7 @@
 import os
+import time
 import base64
+import asyncio
 import httpx
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -48,6 +50,40 @@ def is_model_error(status_code: int, error_message: str) -> bool:
     return any(keyword in lowered for keyword in keywords)
 
 
+async def build_image_content_parts(
+    image_urls: list[str], client: httpx.AsyncClient
+) -> list[dict]:
+    if not image_urls:
+        return []
+
+    results = await asyncio.gather(
+        *(download_image_bytes(url, client) for url in image_urls),
+        return_exceptions=True,
+    )
+
+    image_content_parts: list[dict] = []
+    for url, result in zip(image_urls, results):
+        if isinstance(result, Exception):
+            raise HTTPException(
+                status_code=400,
+                detail=f"이미지 다운로드 실패 ({url}): {str(result)}",
+            )
+
+        base64_image = base64.b64encode(result).decode("utf-8")
+        image_content_parts.append(
+            {
+                "type": "image",
+                "source": {
+                    "type": "base64",
+                    "media_type": "image/jpeg",
+                    "data": base64_image,
+                },
+            }
+        )
+
+    return image_content_parts
+
+
 @router.post("/analyze")
 async def analyze(request: AnalyzeRequest):
     """OpenRouter API를 통해 이미지 분석 (다중 모델 지원)"""
@@ -56,28 +92,12 @@ async def analyze(request: AnalyzeRequest):
         raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY가 설정되지 않았습니다.")
 
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            # 이미지를 base64로 변환
-            image_content_parts = []
-            if request.image_urls:
-                for url in request.image_urls:
-                    try:
-                        image_bytes = await download_image_bytes(url, client)
-                        base64_image = base64.b64encode(image_bytes).decode("utf-8")
-                        # 이미지 포맷 자동 감지 (기본값 jpeg)
-                        image_content_parts.append({
-                            "type": "image",
-                            "source": {
-                                "type": "base64",
-                                "media_type": "image/jpeg",
-                                "data": base64_image,
-                            },
-                        })
-                    except Exception as e:
-                        raise HTTPException(
-                            status_code=400,
-                            detail=f"이미지 다운로드 실패 ({url}): {str(e)}",
-                        )
+        endpoint_start = time.perf_counter()
+        timeout_seconds = float(os.environ.get("OPENROUTER_TIMEOUT", "45"))
+
+        async with httpx.AsyncClient(timeout=timeout_seconds) as client:
+            # 이미지를 base64로 변환 (병렬 다운로드)
+            image_content_parts = await build_image_content_parts(request.image_urls, client)
 
             # 메시지 구성
             content = image_content_parts + [{"type": "text", "text": request.prompt}]
@@ -107,9 +127,9 @@ async def analyze(request: AnalyzeRequest):
                             "content": content,
                         }
                     ],
-                    "temperature": 0.7,
-                    "max_tokens": 4096,
-                    "top_p": 0.9,
+                    "temperature": float(os.environ.get("OPENROUTER_TEMPERATURE", "0.3")),
+                    "max_tokens": int(os.environ.get("OPENROUTER_MAX_TOKENS", "900")),
+                    "top_p": float(os.environ.get("OPENROUTER_TOP_P", "0.9")),
                 }
 
                 response = await client.post(
@@ -147,6 +167,10 @@ async def analyze(request: AnalyzeRequest):
                 raise ValueError("AI가 빈 응답을 반환했습니다.")
 
             text = data["choices"][0]["message"]["content"]
+            elapsed_ms = int((time.perf_counter() - endpoint_start) * 1000)
+            print(
+                f"[AI] analyze done | images={len(request.image_urls)} | prompt_len={len(request.prompt)} | elapsed_ms={elapsed_ms}"
+            )
             return {"result": text}
 
     except HTTPException:

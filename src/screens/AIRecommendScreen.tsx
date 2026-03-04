@@ -15,7 +15,7 @@ import {
   Animated,
   PanResponder,
   Easing,
-  FlatList, // 🚀 추가됨
+  FlatList, 
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -23,7 +23,10 @@ import type { ComponentProps } from "react";
 import { X, Search, Heart } from "lucide-react-native";
 import { useAuth } from "../contexts/AuthContext";
 import { getClothingItems } from "../services/wardrobeService";
-import { recommendSmartOutfit } from "../services/fashionAIService";
+import {
+  recommendSmartOutfit,
+  recommendNewItems,
+} from "../services/fashionAIService";
 import { getWeatherByCurrentLocation } from "../services/weatherService";
 import { ClothingItem } from "../types/wardrobe";
 import { OutfitAnalysis, FashionStyle, WeatherInfo } from "../types/ai";
@@ -182,6 +185,7 @@ export default function AIRecommendScreen() {
   const CARD_WIDTH = Dimensions.get("window").width - 48;
   const scrollViewRef = React.useRef<ScrollView>(null);
   const isRequestingRef = React.useRef(false); // API 요청 중 플래그
+  const recommendRequestIdRef = React.useRef(0); // 최신 요청 식별자
 
   // 쿨다운 상태 (30초)
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
@@ -435,6 +439,8 @@ export default function AIRecommendScreen() {
     try {
       // 즉시 플래그 설정 (중복 호출 완전 차단)
       isRequestingRef.current = true;
+      recommendRequestIdRef.current += 1;
+      const requestId = recommendRequestIdRef.current;
 
       // 새로운 추천을 받는 동안 기존 결과 먼저 숨기기
       setAnalysis(null);
@@ -446,28 +452,48 @@ export default function AIRecommendScreen() {
       console.log("선택된 아이템:", selectedItems.length);
       console.log("전체 옷:", clothes.length);
 
-      // 스마트 추천 (코디 분석 + 새 아이템 추천 통합 - 1번의 API 호출)
-      console.log("🚀 통합 API 호출 중...");
+      // 1차: 코디 분석만 빠르게 조회
+      console.log("🚀 1차 AI 호출 (코디 분석)");
       const outfitAnalysis = await recommendSmartOutfit(
         selectedItems,
         clothes,
         selectedStyle,
-        weather?.temperature
+        weather?.temperature,
+        false
       );
-      console.log("✅ AI 추천 완료 (1회 API 호출)");
+      console.log("✅ 1차 AI 완료");
 
-      // 결과 캐싱
+      // 결과 캐싱 (1차 결과)
       cacheRef.current.set(cacheKey, outfitAnalysis);
-      console.log("💾 결과 캐시 저장:", cacheKey);
+      console.log("💾 1차 결과 캐시 저장:", cacheKey);
 
+      // 우선 코디 결과 먼저 표시
       setAnalysis(outfitAnalysis);
-      setSuggestedItems(outfitAnalysis.newItemRecommendations || []);
       setCurrentImageIndex(0);
 
       // 쿨다운 시작
       startCooldown();
 
-      console.log("=== AI 추천 완료 ===");
+      // 2차: 새 아이템 추천은 백그라운드에서 조회
+      recommendNewItems(clothes, selectedStyle, weather?.temperature)
+        .then((newItems) => {
+          if (recommendRequestIdRef.current !== requestId) return;
+          setSuggestedItems(newItems);
+
+          const currentCached = cacheRef.current.get(cacheKey);
+          if (currentCached) {
+            cacheRef.current.set(cacheKey, {
+              ...currentCached,
+              newItemRecommendations: newItems,
+            });
+          }
+          console.log("✅ 2차 AI 완료 (새 아이템 추천)");
+        })
+        .catch((error) => {
+          console.warn("새 아이템 추천 백그라운드 호출 실패:", error);
+        });
+
+      console.log("=== AI 추천 완료(1차 표시 완료) ===");
     } catch (error: any) {
       console.error("=== AI 분석 오류 ===", error);
       if (error instanceof Error && error.message.includes("아이템 부족")) {

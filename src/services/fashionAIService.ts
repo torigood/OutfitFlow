@@ -15,7 +15,8 @@ export const analyzeOutfitCombination = async (
   items: ClothingItem[],
   preferredStyle?: FashionStyle,
   temperature?: number,
-  allWardrobeItems?: ClothingItem[] // 옷장 전체 (새 아이템 추천용)
+  allWardrobeItems?: ClothingItem[], // 옷장 전체 (새 아이템 추천용)
+  includeNewItemRecommendations: boolean = true
 ): Promise<OutfitAnalysis> => {
   try {
     if (items.length < 2) {
@@ -41,18 +42,20 @@ export const analyzeOutfitCombination = async (
 
     // 옷장 요약 (새 아이템 추천용)
     const MAX_WARDROBE_ITEMS = 12;
-    const wardrobeSummary = allWardrobeItems
-      ? `
+    const wardrobeSummary =
+      includeNewItemRecommendations && allWardrobeItems
+        ? `
 옷장 보유 아이템 (${allWardrobeItems.length}개):
 ${allWardrobeItems
   .slice(0, MAX_WARDROBE_ITEMS)
   .map((item) => `- ${item.category} | ${item.color} ${item.name}`)
   .join("\n")}
 ${allWardrobeItems.length > MAX_WARDROBE_ITEMS ? `...(총 ${allWardrobeItems.length}개 중 ${MAX_WARDROBE_ITEMS}개만 표시)` : ""}`
-      : "";
+        : "";
 
     // AI 프롬프트 생성 (코디 분석 + 새 아이템 추천 통합)
-    const prompt = `당신은 전문 패션 스타일리스트입니다. 다음 옷들의 조합을 분석하고, 옷장에 추가하면 좋을 새 아이템도 추천해주세요.
+    const prompt = includeNewItemRecommendations
+      ? `당신은 전문 패션 스타일리스트입니다. 다음 옷들의 조합을 분석하고, 옷장에 추가하면 좋을 새 아이템도 추천해주세요.
 
 선택한 옷:
 ${itemsDescription}
@@ -63,24 +66,46 @@ ${wardrobeSummary}
 
 다음 JSON 형식으로 응답해주세요:
 {
-  "compatibility": 1-10 점수 (전체 조합 적합도),
+  "compatibility": 1-10 점수,
   "colorHarmony": {
-    "score": 1-10 점수 (색상 조화),
-    "description": "색상 조화에 대한 설명",
+    "score": 1-10 점수,
+    "description": "색상 조화 설명",
     "complementaryColors": ["추천 보색 1", "추천 보색 2"]
   },
-  "styleConsistency": 1-10 점수 (스타일 일관성),
-  "advice": "전체적인 코디 조언 (한국어, 2-3문장)",
+  "styleConsistency": 1-10 점수,
+  "advice": "전체 코디 조언 (한국어, 2-3문장)",
   "suggestions": ["개선 제안 1", "개선 제안 2", "개선 제안 3"],
   "newItemRecommendations": [
-    {"category": "카테고리", "item": "구체적인 아이템명", "reason": "추천 이유 (1문장)"},
-    {"category": "카테고리", "item": "구체적인 아이템명", "reason": "추천 이유 (1문장)"},
-    {"category": "카테고리", "item": "구체적인 아이템명", "reason": "추천 이유 (1문장)"}
+    {"category": "카테고리", "item": "구체 아이템명", "reason": "추천 이유"},
+    {"category": "카테고리", "item": "구체 아이템명", "reason": "추천 이유"},
+    {"category": "카테고리", "item": "구체 아이템명", "reason": "추천 이유"}
   ]
 }
 
-**중요**: newItemRecommendations는 옷장에 없거나 부족한 아이템만 추천하세요. 기존 옷과 중복되지 않게 해주세요.
-응답은 반드시 JSON만 제공하고, 다른 설명은 추가하지 마세요.`;
+**중요**: newItemRecommendations는 옷장에 없거나 부족한 아이템만 추천하세요.
+응답은 반드시 JSON만 제공하세요.`
+      : `당신은 전문 패션 스타일리스트입니다. 다음 옷들의 조합만 분석해주세요.
+
+선택한 옷:
+${itemsDescription}
+
+${preferredStyle ? `선호 스타일: ${preferredStyle}` : ""}
+${temperature !== undefined ? `현재 기온: ${temperature}°C - 이 온도에 적합한지 반드시 고려하세요` : ""}
+
+다음 JSON 형식으로 응답해주세요:
+{
+  "compatibility": 1-10 점수,
+  "colorHarmony": {
+    "score": 1-10 점수,
+    "description": "색상 조화 설명",
+    "complementaryColors": ["추천 보색 1", "추천 보색 2"]
+  },
+  "styleConsistency": 1-10 점수,
+  "advice": "전체 코디 조언 (한국어, 2-3문장)",
+  "suggestions": ["개선 제안 1", "개선 제안 2", "개선 제안 3"]
+}
+
+응답은 반드시 JSON만 제공하세요.`;
 
     // Gemini AI 분석
     const response = await analyzeWithGemini(imageUrls, prompt);
@@ -94,7 +119,9 @@ ${wardrobeSummary}
       advice: analysis.advice,
       suggestions: analysis.suggestions,
       selectedItems: items,
-      newItemRecommendations: analysis.newItemRecommendations,
+      newItemRecommendations: includeNewItemRecommendations
+        ? analysis.newItemRecommendations
+        : undefined,
     };
   } catch (error) {
     console.error("코디 조합 분석 오류:", error);
@@ -152,7 +179,8 @@ export const recommendSmartOutfit = async (
   userSelectedItems: ClothingItem[], // 유저가 선택한 아이템 (0개 이상)
   allItems: ClothingItem[], // 옷장 전체
   preferredStyle: FashionStyle,
-  temperature?: number
+  temperature?: number,
+  includeNewItemRecommendations: boolean = true
 ): Promise<OutfitAnalysis> => {
   try {
     // 유저 선택 아이템으로 시작
@@ -250,7 +278,8 @@ export const recommendSmartOutfit = async (
       uniqueItems.slice(0, 4),
       preferredStyle,
       temperature,
-      allItems // 옷장 전체 전달
+      allItems, // 옷장 전체 전달
+      includeNewItemRecommendations
     );
   } catch (error) {
     console.error("스마트 추천 오류:", error);
