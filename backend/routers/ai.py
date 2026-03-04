@@ -104,7 +104,7 @@ async def analyze(request: AnalyzeRequest):
                 raise ValueError("AI가 빈 응답을 반환했습니다.")
 
             text = data["choices"][0]["message"]["content"]
-            return {"text": text}
+            return {"result": text}
 
     except HTTPException:
         raise

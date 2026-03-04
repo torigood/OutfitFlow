@@ -1,10 +1,9 @@
 import * as ImageManipulator from "expo-image-manipulator";
 import { Platform } from "react-native";
-import { CLOUDINARY_CONFIG } from "../config/cloudinary";
-import { CloudinaryUploadResponse } from "../types/wardrobe";
+import { RAILWAY_BACKEND_URL } from "@env";
 
 /**
- * 이미지를 압축/리사이징하여 Cloudinary에 업로드
+ * 이미지를 압축/리사이징하여 Backend를 통해 Cloudinary에 업로드
  * @param imageUri - 로컬 이미지 URI
  * @returns Cloudinary 이미지 URL과 public_id
  */
@@ -43,11 +42,8 @@ export const uploadImageToCloudinary = async (
       formData.append("file", file);
     }
 
-    formData.append("upload_preset", CLOUDINARY_CONFIG.uploadPreset);
-    formData.append("folder", "wardrobe"); // wardrobe 폴더에 저장
-
-    // 3. Cloudinary에 업로드
-    const response = await fetch(CLOUDINARY_CONFIG.apiUrl, {
+    // 3. Backend API에 업로드
+    const response = await fetch(`${RAILWAY_BACKEND_URL}/api/image/upload`, {
       method: "POST",
       body: formData,
       headers: {
@@ -58,21 +54,21 @@ export const uploadImageToCloudinary = async (
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(
-        `Cloudinary 업로드 실패: ${
-          errorData.error?.message || "알 수 없는 오류"
+        `이미지 업로드 실패: ${
+          errorData.detail || "알 수 없는 오류"
         }`
       );
     }
 
-    const data: CloudinaryUploadResponse = await response.json();
+    const data = await response.json();
 
     // 4. 업로드된 이미지 URL과 public_id 반환
     return {
-      url: data.secure_url,
-      publicId: data.public_id,
+      url: data.url,
+      publicId: data.publicId,
     };
   } catch (error) {
-    console.error("Cloudinary 업로드 오류:", error);
+    console.error("이미지 업로드 오류:", error);
     throw new Error(
       `이미지 업로드 실패: ${
         error instanceof Error ? error.message : "알 수 없는 오류"
@@ -82,15 +78,35 @@ export const uploadImageToCloudinary = async (
 };
 
 /**
- * Cloudinary에서 이미지 삭제
- * 참고: Unsigned 업로드 방식에서는 클라이언트에서 직접 삭제가 불가능합니다.
- * Cloudinary Dashboard에서 수동으로 삭제하거나, 백엔드 서버를 통해 삭제해야 합니다.
- * 현재는 삭제 기능을 생략하고, Firestore에서만 데이터를 삭제합니다.
+ * Backend를 통해 Cloudinary에서 이미지 삭제
+ * @param publicId - Cloudinary public_id
  */
 export const deleteImageFromCloudinary = async (
-  imageUrl: string
+  publicId: string
 ): Promise<void> => {
-  // Unsigned 업로드 방식에서는 클라이언트에서 삭제 불가
-  // 추후 백엔드 서버 구현 시 추가 가능
-  console.log("Cloudinary 이미지는 Dashboard에서 수동 삭제 필요:", imageUrl);
+  try {
+    const response = await fetch(`${RAILWAY_BACKEND_URL}/api/image`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ public_id: publicId }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(
+        `이미지 삭제 실패: ${errorData.detail || "알 수 없는 오류"}`
+      );
+    }
+
+    console.log("이미지 삭제 완료:", publicId);
+  } catch (error) {
+    console.error("이미지 삭제 오류:", error);
+    throw new Error(
+      `이미지 삭제 실패: ${
+        error instanceof Error ? error.message : "알 수 없는 오류"
+      }`
+    );
+  }
 };

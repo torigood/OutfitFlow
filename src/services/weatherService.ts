@@ -1,4 +1,4 @@
-import { OPENWEATHER_API_KEY } from "@env";
+import { RAILWAY_BACKEND_URL } from "@env";
 import { WeatherInfo } from "../types/ai";
 import * as Location from "expo-location";
 
@@ -6,7 +6,7 @@ import * as Location from "expo-location";
 // 1. 설정 및 상수 (이곳에서 위치와 테스트 모드를 관리하세요)
 // =================================================================
 
-const OPENWEATHER_API_BASE = "https://api.openweathermap.org/data/2.5";
+const BACKEND_API_BASE = RAILWAY_BACKEND_URL;
 
 /**
  * 자주 사용하는 위치 좌표 모음
@@ -81,30 +81,31 @@ const translateWeatherCondition = (condition: string): string => {
 // =================================================================
 
 /**
- * 좌표를 받아 날씨를 가져오는 순수 함수
+ * 좌표를 받아 날씨를 가져오는 함수 (백엔드 API 호출)
  */
 export const getCurrentWeather = async (
   latitude: number,
   longitude: number
 ): Promise<WeatherInfo> => {
   try {
-    const url = `${OPENWEATHER_API_BASE}/weather?lat=${latitude}&lon=${longitude}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=kr`;
+    // 백엔드 API 호출
+    const url = `${BACKEND_API_BASE}/api/weather?lat=${latitude}&lon=${longitude}`;
 
     const response = await fetch(url);
     if (!response.ok) throw new Error(`Weather API Error: ${response.status}`);
 
-    const data: OpenWeatherResponse = await response.json();
+    const data = await response.json();
 
     return {
-      temperature: Math.round(data.main.temp),
-      feelsLike: Math.round(data.main.feels_like),
-      humidity: data.main.humidity,
-      condition: translateWeatherCondition(data.weather[0].main),
-      windSpeed: Math.round(data.wind.speed * 10) / 10,
-      description: data.weather[0].description,
+      temperature: Math.round(data.temperature),
+      feelsLike: Math.round(data.feelsLike),
+      humidity: data.humidity,
+      condition: data.condition,
+      windSpeed: data.windSpeed,
+      description: data.description,
     };
   } catch (error) {
-    console.error("❌ 날씨 데이터 조회 실패:", error);
+    console.error("🌤️ [Weather] 날씨 데이터 조회 실패:", error);
     throw error;
   }
 };
